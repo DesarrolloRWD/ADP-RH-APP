@@ -6,7 +6,7 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "NODE_NO_WARNINGS=1 next start"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
