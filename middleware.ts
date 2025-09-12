@@ -7,14 +7,9 @@ const protectedRoutes = ['/dashboard', '/user']
 // Rutas públicas (no requieren autenticación)
 const publicRoutes = ['/login']
 
-// Obtener la URL base del entorno o usar la URL de la solicitud
+// Obtener la URL base de la solicitud actual
 const getBaseUrl = (request: NextRequest): string => {
-  // Si estamos en producción y hay una URL base configurada, usarla
-  if (process.env.NEXT_PUBLIC_BASE_URL) {
-    return process.env.NEXT_PUBLIC_BASE_URL
-  }
-  
-  // De lo contrario, usar la URL de la solicitud
+  // Usar siempre la URL de la solicitud actual
   const protocol = request.headers.get('x-forwarded-proto') || 'http'
   const host = request.headers.get('host') || 'localhost:3000'
   return `${protocol}://${host}`

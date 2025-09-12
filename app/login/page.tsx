@@ -57,13 +57,6 @@ function LoginForm() {
         saveUserData(userData)
       }
       
-      // Obtener la URL base del entorno (obligatorio para producción)
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-      
-      if (!baseUrl) {
-        console.error('NEXT_PUBLIC_BASE_URL no está configurado')
-      }
-      
       // Asegurarse de que callbackUrl sea una ruta relativa
       // Si comienza con http, extraer solo la ruta
       let relativePath = callbackUrl
@@ -77,11 +70,9 @@ function LoginForm() {
         }
       }
       
-      // Construir la URL completa para la redirección
-      const redirectUrl = `${baseUrl}${relativePath}`
-      
-      // Redireccionar a la URL de callback o al dashboard por defecto
-      window.location.href = redirectUrl
+      // Usar router.push para la navegación en lugar de window.location
+      // Esto asegura que se use la URL base correcta automáticamente
+      router.push(relativePath)
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión. Por favor, verifica tus credenciales.')
       setIsLoading(false)
