@@ -39,7 +39,10 @@ export function middleware(request: NextRequest) {
   if (isProtectedRoute && !token) {
     // Guardar la URL a la que intentaba acceder para redirigir después del login
     const url = new URL('/login', baseUrl)
-    url.searchParams.set('callbackUrl', encodeURI(request.url))
+    
+    // Guardar solo la ruta relativa, no la URL completa
+    // Esto evita problemas con redirecciones a localhost
+    url.searchParams.set('callbackUrl', pathname)
     return NextResponse.redirect(url)
   }
   

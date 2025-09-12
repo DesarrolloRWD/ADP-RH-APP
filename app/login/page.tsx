@@ -57,13 +57,28 @@ function LoginForm() {
         saveUserData(userData)
       }
       
-      // Obtener la URL base del entorno o usar una URL relativa
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ''
+      // Obtener la URL base del entorno (obligatorio para producción)
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+      
+      if (!baseUrl) {
+        console.error('NEXT_PUBLIC_BASE_URL no está configurado')
+      }
+      
+      // Asegurarse de que callbackUrl sea una ruta relativa
+      // Si comienza con http, extraer solo la ruta
+      let relativePath = callbackUrl
+      if (callbackUrl.startsWith('http')) {
+        try {
+          const urlObj = new URL(callbackUrl)
+          relativePath = urlObj.pathname + urlObj.search
+        } catch (e) {
+          console.error('Error al parsear callbackUrl:', e)
+          relativePath = '/dashboard' // Fallback seguro
+        }
+      }
       
       // Construir la URL completa para la redirección
-      const redirectUrl = callbackUrl.startsWith('http') 
-        ? callbackUrl 
-        : `${baseUrl}${callbackUrl}`
+      const redirectUrl = `${baseUrl}${relativePath}`
       
       // Redireccionar a la URL de callback o al dashboard por defecto
       window.location.href = redirectUrl
