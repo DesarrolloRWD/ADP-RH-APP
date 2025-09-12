@@ -2,66 +2,105 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, EyeOff, Users, Clock, Shield } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { useRouter, useSearchParams } from "next/navigation"
+import { loginUser } from "@/lib/api"
+import { saveToken, decodeToken, saveUserData, getToken } from "@/lib/auth"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState("")
+  const [usuario, setUsuario] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
+  
+  // Verificar si el usuario ya está autenticado
+  useEffect(() => {
+    const token = getToken()
+    if (token) {
+      router.push('/dashboard')
+    }
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError(null)
 
-    // Simulate login process
-    setTimeout(() => {
+    try {
+      // Llamada a la API real de autenticación
+      const response = await loginUser({ usuario, pswd: password })
+      
+      // Obtener el token (puede venir en diferentes formatos)
+      const token = response.token || response["token "];
+      
+      if (!token) {
+        throw new Error('No se recibió un token válido del servidor');
+      }
+      
+      // Guardar el token en localStorage
+      saveToken(token)
+      
+      // Decodificar el token para obtener información del usuario
+      const userData = decodeToken(token)
+      if (userData) {
+        saveUserData(userData)
+      }
+      
+      // Redireccionar a la URL de callback o al dashboard por defecto
+      router.push(callbackUrl)
+    } catch (err: any) {
+      setError(err.message || 'Error al iniciar sesión. Por favor, verifica tus credenciales.')
       setIsLoading(false)
-      router.push("/dashboard")
-    }, 1500)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4">
-            <Users className="w-8 h-8 text-primary-foreground" />
+        <div className="text-center mb-8 relative">
+          <div className="absolute right-0 top-0">
+            <ThemeToggle />
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">RH Attendance</h1>
-          <p className="text-muted-foreground">Sistema de gestión de asistencias</p>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-800 rounded-2xl mb-4 shadow-lg">
+            <Users className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">ADP System Assist</h1>
+          <p className="text-gray-500 dark:text-gray-400">Sistema de gestión de asistencias</p>
         </div>
 
-        <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm">
+        <Card className="border-0 shadow-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-2xl">
           <CardHeader className="space-y-1 pb-6">
-            <CardTitle className="text-2xl font-bold text-center text-card-foreground">Iniciar Sesión</CardTitle>
-            <CardDescription className="text-center">Accede al panel de administración de RH</CardDescription>
+            <CardTitle className="text-2xl font-bold text-center text-gray-900 dark:text-white">Iniciar Sesión</CardTitle>
+            <CardDescription className="text-center text-gray-500 dark:text-gray-400">Accede al panel de administración de RH</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-card-foreground font-medium">
-                  Correo electrónico
+                <Label htmlFor="usuario" className="text-gray-700 dark:text-gray-300 font-medium">
+                  Usuario
                 </Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@empresa.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-input border-border focus:border-primary"
+                  id="usuario"
+                  type="text"
+                  placeholder="nombre_usuario"
+                  value={usuario}
+                  onChange={(e) => setUsuario(e.target.value)}
+                  className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-card-foreground font-medium">
+                <Label htmlFor="password" className="text-gray-700 dark:text-gray-300 font-medium">
                   Contraseña
                 </Label>
                 <div className="relative">
@@ -71,7 +110,7 @@ export default function LoginPage() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="bg-input border-border focus:border-primary pr-10"
+                    className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 pr-10"
                     required
                   />
                   <Button
@@ -89,9 +128,14 @@ export default function LoginPage() {
                   </Button>
                 </div>
               </div>
+              {error && (
+                <div className="p-3 rounded-md bg-red-50 text-red-600 text-sm mb-4">
+                  {error}
+                </div>
+              )}
               <Button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2.5"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2.5 rounded-xl shadow-sm"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -108,17 +152,17 @@ export default function LoginPage() {
         </Card>
 
         <div className="mt-8 grid grid-cols-3 gap-4 text-center">
-          <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-card/50">
-            <Shield className="w-6 h-6 text-primary" />
-            <span className="text-xs text-muted-foreground">Seguro</span>
+          <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/50 dark:bg-gray-800/30 backdrop-blur-sm shadow-sm">
+            <Shield className="w-6 h-6 text-blue-500 dark:text-blue-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">Seguro</span>
           </div>
-          <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-card/50">
-            <Clock className="w-6 h-6 text-accent" />
-            <span className="text-xs text-muted-foreground">24/7</span>
+          <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/50 dark:bg-gray-800/30 backdrop-blur-sm shadow-sm">
+            <Clock className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">24/7</span>
           </div>
-          <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-card/50">
-            <Users className="w-6 h-6 text-primary" />
-            <span className="text-xs text-muted-foreground">Confiable</span>
+          <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/50 dark:bg-gray-800/30 backdrop-blur-sm shadow-sm">
+            <Users className="w-6 h-6 text-blue-500 dark:text-blue-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">Confiable</span>
           </div>
         </div>
       </div>

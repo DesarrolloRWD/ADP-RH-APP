@@ -3,34 +3,21 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Clock, MapPin, Smartphone, Eye } from "lucide-react"
-import { useState } from "react"
-import { AttendanceDetailModal } from "@/components/attendance-detail-modal"
+import { Clock, Eye } from "lucide-react"
 
 interface AttendanceRecord {
   id: string
-  timestamp: string
-  type: "entrada" | "salida"
-  location: {
-    latitude: number
-    longitude: number
-    accuracy: number
-  }
-  deviceInfo: {
-    deviceId: string
-    platform: string
-    appVersion: string
-  }
-  photo?: string
+  employeeId: string
+  event_timestamp: string
+  event_type: "ENTRADA" | "SALIDA"
 }
 
 interface AttendanceRecordProps {
   record: AttendanceRecord
+  onViewDetails: (record: AttendanceRecord) => void
 }
 
-export function AttendanceRecord({ record }: AttendanceRecordProps) {
-  const [showModal, setShowModal] = useState(false)
-
+export function AttendanceRecord({ record, onViewDetails }: AttendanceRecordProps) {
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleString("es-ES", {
       day: "2-digit",
@@ -42,65 +29,53 @@ export function AttendanceRecord({ record }: AttendanceRecordProps) {
   }
 
   const getTypeColor = (type: string) => {
-    return type === "entrada" ? "bg-accent text-accent-foreground" : "bg-primary text-primary-foreground"
+    return type === "ENTRADA" 
+      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+      : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
   }
 
+  const formatHourMinute = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+  
   return (
-    <>
-      <Card className="border-border hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col items-center">
-                <Badge className={getTypeColor(record.type)}>
-                  {record.type.charAt(0).toUpperCase() + record.type.slice(1)}
-                </Badge>
-                <div className="text-xs text-muted-foreground mt-1">{formatTime(record.timestamp)}</div>
-              </div>
-
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-foreground font-medium">
-                    {new Date(record.timestamp).toLocaleTimeString("es-ES", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MapPin className="w-4 h-4" />
-                  <span>
-                    {record.location.latitude.toFixed(6)}, {record.location.longitude.toFixed(6)}
-                  </span>
-                  <span className="text-xs">(±{record.location.accuracy}m)</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Smartphone className="w-4 h-4" />
-                  <span>{record.deviceInfo.deviceId}</span>
-                  <span className="text-xs">
-                    {record.deviceInfo.platform} v{record.deviceInfo.appVersion}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowModal(true)}
-              className="border-border hover:bg-muted"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Ver Detalles
-            </Button>
+    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-shadow w-[calc(50%-0.5rem)]">
+      <div className="p-3">
+        <div className="flex items-center justify-between mb-2">
+          <Badge className={`${getTypeColor(record.event_type)} rounded-full px-2 py-0.5 text-xs`}>
+            {record.event_type === "ENTRADA" ? "Entrada" : "Salida"}
+          </Badge>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onViewDetails(record)}
+            className="h-7 w-7 p-0 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+        
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+            <Clock className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
           </div>
-        </CardContent>
-      </Card>
-
-      <AttendanceDetailModal record={record} isOpen={showModal} onClose={() => setShowModal(false)} />
-    </>
+          <span className="text-gray-900 dark:text-white font-medium text-sm">
+            {formatHourMinute(record.event_timestamp)}
+          </span>
+        </div>
+        
+        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+          {new Date(record.event_timestamp).toLocaleDateString("es-ES", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+          })}
+        </div>
+      </div>
+    </div>
   )
 }
