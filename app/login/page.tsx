@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,7 +13,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { loginUser } from "@/lib/api"
 import { saveToken, decodeToken, saveUserData, getToken } from "@/lib/auth"
 
-export default function LoginPage() {
+// Login form component that uses searchParams
+function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [usuario, setUsuario] = useState("")
   const [password, setPassword] = useState("")
@@ -167,5 +168,28 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Loading fallback component
+function LoginLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <div className="w-full max-w-md text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-800 rounded-2xl mb-4 shadow-lg">
+          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
+        </div>
+        <h2 className="text-xl font-medium text-gray-700 dark:text-gray-300">Cargando...</h2>
+      </div>
+    </div>
+  )
+}
+
+// Main page component that wraps the login form in a Suspense boundary
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginLoading />}>
+      <LoginForm />
+    </Suspense>
   )
 }
