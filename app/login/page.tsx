@@ -57,8 +57,16 @@ function LoginForm() {
         saveUserData(userData)
       }
       
+      // Obtener la URL base del entorno o usar una URL relativa
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ''
+      
+      // Construir la URL completa para la redirección
+      const redirectUrl = callbackUrl.startsWith('http') 
+        ? callbackUrl 
+        : `${baseUrl}${callbackUrl}`
+      
       // Redireccionar a la URL de callback o al dashboard por defecto
-      router.push(callbackUrl)
+      window.location.href = redirectUrl
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión. Por favor, verifica tus credenciales.')
       setIsLoading(false)
