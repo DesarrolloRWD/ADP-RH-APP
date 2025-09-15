@@ -8,8 +8,8 @@ const USER_DATA_KEY = 'adp_rh_user_data';
 const cookieOptions = {
   expires: 7, // 7 días
   path: '/',
-  sameSite: 'strict' as 'strict',
-  secure: process.env.NODE_ENV === 'production'
+  sameSite: 'lax' as 'lax', // Cambiado a 'lax' para mayor compatibilidad
+  secure: false // Desactivado para permitir HTTP
 };
 
 /**

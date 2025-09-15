@@ -16,7 +16,10 @@ const nextConfig = {
         source: '/api/:path*',
         // La URL real está hardcodeada aquí para mayor seguridad
         // Solo el servidor tiene acceso a esta URL
-        destination: 'https://almacen-dev.adpredcell.com/gateway/api/:path*',
+        //DESARROLLO
+        //destination: 'https://almacen-dev.adpredcell.com/gateway/api/:path*',
+        //PRODUCCION
+        destination: 'https://almacen-mx-prod.adpredcell.com/gateway/api/:path*'
       },
     ];
   },
