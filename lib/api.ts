@@ -376,6 +376,7 @@ export interface UserInformationRequest {
   image?: string;
   roles: Array<{ nombre: string }>;
   tenant: { nombre: string };
+  allowWebAccess?: boolean; // Indica si el usuario puede acceder a la aplicación web
 }
 
 /**

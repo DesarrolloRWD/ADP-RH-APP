@@ -106,20 +106,33 @@ export const isAuthenticated = (): boolean => {
   
   try {
     // Verificar que el token tenga el formato correcto
-    if (!token.includes('.')) return false;
+    if (!token.includes('.')) {
+      removeToken(); // Limpiar token inválido
+      return false;
+    }
     
     // Decodificar el token (parte del payload)
     const base64Url = token.split('.')[1];
-    if (!base64Url) return false;
+    if (!base64Url) {
+      removeToken(); // Limpiar token inválido
+      return false;
+    }
     
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     const payload = JSON.parse(window.atob(base64));
     
     // Verificar la expiración del token
     const currentTime = Date.now() / 1000;
-    return payload.exp > currentTime;
+    if (payload.exp <= currentTime) {
+      console.log('Token expirado, eliminando credenciales');
+      removeToken(); // Limpiar token expirado
+      return false;
+    }
+    
+    return true;
   } catch (error) {
     console.error('Error al verificar la autenticación:', error);
+    removeToken(); // Limpiar token en caso de error
     return false;
   }
 };

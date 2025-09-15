@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Users, Clock, Calendar, Search, UserCheck, Building, LogOut, UserPlus, Loader2 } from "lucide-react"
+import { Users, Clock, Calendar, Search, UserCheck, Building, LogOut, UserPlus, Loader2, Settings, FileText, Shield } from "lucide-react"
+import { AdminMenu } from "@/components/admin-menu"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { UserCard } from "@/components/user-card"
 import { StatsCard } from "@/components/stats-card"
@@ -15,9 +16,14 @@ import { EditUserModal } from "@/components/edit-user-modal"
 import { UserFilters, UserFilters as UserFiltersType } from "@/components/user-filters"
 import { useRouter } from "next/navigation"
 import AuthGuard from "@/components/auth-guard"
+import RoleGuard from "@/components/role-guard"
+import RoleContent from "@/components/role-content"
+import PermissionGuard from "@/components/permission-guard"
 import { getToken, logout, getUserData } from "@/lib/auth"
 import { updateUserStatus, getSpecificUser } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { usePermissions } from "@/hooks/use-permissions"
+import { Permissions } from "@/lib/permissions"
 
 interface User {
   correo: string
@@ -35,6 +41,8 @@ interface User {
 }
 
 export default function DashboardPage() {
+  // Usar el hook de permisos
+  const { hasPermission, hasRole, roles, permissions, isLoading: isLoadingPermissions } = usePermissions()
   const [users, setUsers] = useState<User[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -92,6 +100,9 @@ export default function DashboardPage() {
     }
   }
 
+  // Verificar si el usuario tiene permiso para ver administradores
+  const canViewAdmins = hasPermission(Permissions.USERS.VIEW_ADMINS)
+
   useEffect(() => {
     // Aplicar filtros a los usuarios
     let filtered = users.filter(
@@ -100,6 +111,13 @@ export default function DashboardPage() {
         user.usuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.correo.toLowerCase().includes(searchTerm.toLowerCase()))
     )
+    
+    // Ocultar usuarios administradores si el usuario no tiene permiso para verlos
+    if (!canViewAdmins) {
+      filtered = filtered.filter(user => 
+        !user.roles.some(role => role.nombre === 'ROLE_ADMIN')
+      )
+    }
     
     // Filtrar por roles si hay roles seleccionados
     if (activeFilters.roles.length > 0) {
@@ -116,7 +134,7 @@ export default function DashboardPage() {
     }
     
     setFilteredUsers(filtered)
-  }, [users, searchTerm, activeFilters])
+  }, [users, searchTerm, activeFilters, canViewAdmins])
 
   const fetchUsers = async (pageNum = 1, reset = true) => {
     try {
@@ -270,6 +288,9 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* Menú de administración con acceso a roles y otras opciones */}
+              <AdminMenu />
+              
               <Badge variant="secondary" className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-none px-2.5 py-1 rounded-full">
                 <Building className="w-3.5 h-3.5 mr-1.5" />
                 Administrador
@@ -391,14 +412,43 @@ export default function DashboardPage() {
                   />
                 </div>
                 <UserFilters onFilterChange={handleFilterChange} />
-                <Button
-                  size="sm"
-                  onClick={() => setIsCreateUserModalOpen(true)}
-                  className="bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-sm"
-                >
-                  <UserPlus className="w-4 h-4 mr-1.5" />
-                  Nuevo Usuario
-                </Button>
+                
+                {/* Botón para crear usuario - solo visible con permiso */}
+                <PermissionGuard permission={Permissions.USERS.CREATE}>
+                  <Button
+                    size="sm"
+                    onClick={() => setIsCreateUserModalOpen(true)}
+                    className="bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-sm"
+                  >
+                    <UserPlus className="w-4 h-4 mr-1.5" />
+                    Nuevo Usuario
+                  </Button>
+                </PermissionGuard>
+                
+                {/* Botón para reportes - solo visible con permiso */}
+                <PermissionGuard permission={Permissions.REPORTS.VIEW}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-full"
+                  >
+                    <FileText className="w-4 h-4 mr-1.5" />
+                    Reportes
+                  </Button>
+                </PermissionGuard>
+                
+                {/* Botón de configuración - solo para administradores */}
+                <RoleContent allowedRoles={['ROLE_ADMIN']}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-full"
+                    onClick={() => router.push('/admin/roles')}
+                  >
+                    <Shield className="w-4 h-4 mr-1.5" />
+                    Administrar Roles
+                  </Button>
+                </RoleContent>
               </div>
             </div>
           </div>
@@ -417,8 +467,8 @@ export default function DashboardPage() {
                   <UserCard 
                     key={user.usuario} 
                     user={user} 
-                    onUpdateStatus={handleUpdateUserStatus}
-                    onEditUser={handleEditUser}
+                    onUpdateStatus={hasPermission(Permissions.USERS.MANAGE_STATUS) ? handleUpdateUserStatus : undefined}
+                    onEditUser={hasPermission(Permissions.USERS.EDIT) ? handleEditUser : undefined}
                   />
                 ))}
               </div>
