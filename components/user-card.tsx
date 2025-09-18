@@ -78,7 +78,9 @@ export function UserCard({ user, onUpdateStatus, onEditUser }: UserCardProps) {
   }
 
   const getInitials = (nombre: string, apellido: string) => {
-    return `${nombre.charAt(0)}${apellido.charAt(0)}`.toUpperCase()
+    const firstInitial = nombre && nombre.length > 0 ? nombre.charAt(0) : 'U';
+    const lastInitial = apellido && apellido.length > 0 ? apellido.charAt(0) : '';
+    return `${firstInitial}${lastInitial}`.toUpperCase()
   }
 
   const formatDate = (dateString: string) => {

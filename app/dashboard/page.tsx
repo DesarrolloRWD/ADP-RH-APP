@@ -304,7 +304,8 @@ export default function DashboardPage() {
                   <AvatarImage src="/admin-interface.png" />
                 )}
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
-                  {currentUser ? `${currentUser.nombre.charAt(0)}${currentUser.apdPaterno.charAt(0)}` : 'AD'}
+                  {currentUser && currentUser.nombre && currentUser.apdPaterno ? 
+                    `${currentUser.nombre.charAt(0)}${currentUser.apdPaterno.charAt(0)}` : 'AD'}
                 </AvatarFallback>
               </Avatar>
               <Button

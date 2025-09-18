@@ -177,8 +177,8 @@ export default function UserDetailPage() {
                   <Avatar className="w-24 h-24 mx-auto mb-4 border-2 border-white dark:border-gray-800 shadow-sm">
                     <AvatarImage src={user.image} />
                     <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-lg font-medium">
-                      {user.nombre.charAt(0)}
-                      {user.apdPaterno.charAt(0)}
+                      {user.nombre && user.nombre.charAt(0)}
+                      {user.apdPaterno && user.apdPaterno.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   <h3 className="font-semibold text-gray-900 dark:text-white text-lg">
