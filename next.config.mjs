@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Deshabilitar Vercel Analytics en desarrollo
+  analyticsId: process.env.NODE_ENV === 'production' ? undefined : null,
   eslint: {
     ignoreDuringBuilds: true,
   },

@@ -23,6 +23,6 @@ app.prepare().then(() => {
     handle(req, res, parsedUrl);
   }).listen(PORT, (err) => {
     if (err) throw err;
-    console.log(`> Ready on https://localhost:${PORT}`);
+    //console.log(`> Ready on https://localhost:${PORT}`);
   });
 });

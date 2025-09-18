@@ -31,6 +31,7 @@ export const UserFilters = forwardRef<HTMLButtonElement, UserFiltersProps>(({ on
   const [isUserAdmin, setIsUserAdmin] = useState(false);
 
   // Detectar si el usuario actual es RH o ADMIN
+  // Efecto para detectar el rol del usuario
   useEffect(() => {
     const userData = getUserData();
     if (userData && userData.roles) {
@@ -52,6 +53,12 @@ export const UserFilters = forwardRef<HTMLButtonElement, UserFiltersProps>(({ on
       setIsUserAdmin(roles.some(r => r.includes('ADMIN') || r.includes('ROLE_ADMIN')));
     }
   }, []);
+  
+  // Efecto para notificar cambios en los filtros al componente padre
+  useEffect(() => {
+    // Notificar al componente padre sobre los cambios en los filtros
+    onFilterChange(filters);
+  }, [filters, onFilterChange]);
 
   // Lista de roles disponibles filtrada según el rol del usuario
   const availableRoles = [
@@ -74,26 +81,20 @@ export const UserFilters = forwardRef<HTMLButtonElement, UserFiltersProps>(({ on
         ? prev.roles.filter(id => id !== roleId)
         : [...prev.roles, roleId]
       
-      const newFilters = { ...prev, roles: newRoles }
-      onFilterChange(newFilters)
-      return newFilters
+      return { ...prev, roles: newRoles }
     })
   }
 
   // Función para manejar cambios en el filtro de estado
   const handleStatusChange = (status: string | null) => {
     setFilters(prev => {
-      const newFilters = { ...prev, status }
-      onFilterChange(newFilters)
-      return newFilters
+      return { ...prev, status }
     })
   }
 
   // Función para limpiar todos los filtros
   const clearFilters = () => {
-    const newFilters = { roles: [], status: null }
-    setFilters(newFilters)
-    onFilterChange(newFilters)
+    setFilters({ roles: [], status: null })
   }
 
   // Contar filtros activos

@@ -42,7 +42,7 @@ export function cleanupExpiredTokens(): void {
 
   const token = getToken();
   if (token && isTokenExpired(token)) {
-    console.log('Detectado token expirado al iniciar la aplicación, limpiando credenciales');
+    //console.log('Detectado token expirado al iniciar la aplicación, limpiando credenciales');
     removeToken();
   }
 }
