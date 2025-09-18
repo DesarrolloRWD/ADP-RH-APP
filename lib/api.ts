@@ -451,7 +451,7 @@ export async function updateUserInformation(request: UpdateInformationRequest): 
     
     // Registrar para depuración
     //console.log('JSON para actualizar usuario en Postman:');
-    console.log(JSON.stringify(simplifiedRequest, null, 2));
+    //console.log(JSON.stringify(simplifiedRequest, null, 2));
     //console.log('URL:', originalApiUrl);
     //console.log('Método: PUT');
     //console.log('Headers: Content-Type: application/json, Authorization: Bearer [token]');

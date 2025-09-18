@@ -8,7 +8,7 @@ import { Loader2, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Download }
 import * as XLSX from 'xlsx'
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { getUserData } from "@/lib/auth"
+import { getUserData, getToken } from "@/lib/auth"
 import { useRouter } from "next/navigation"
 
 interface BulkUploadModalProps {
@@ -68,10 +68,21 @@ export function BulkUploadModal({ isOpen, onClose, onUploadComplete }: BulkUploa
       // Extraer roles del usuario
       let userRoles: string[] = []
       
+      console.log('userData en BulkUploadModal:', userData);
+      
+      // Verificar si el usuario tiene isAdmin=true en el token
+      if (userData.isAdmin === true) {
+        console.log('Usuario es admin por propiedad isAdmin');
+        setIsAuthorized(true);
+        return;
+      }
+      
       if (userData.roles) {
+        console.log('Roles encontrados:', userData.roles);
+        
         // Si roles es un array de objetos con propiedad nombre
         if (Array.isArray(userData.roles) && typeof userData.roles[0] === 'object') {
-          userRoles = userData.roles.map((role: any) => role.nombre)
+          userRoles = userData.roles.map((role: any) => role.nombre || role.authority || '')
         } 
         // Si roles es un array de strings
         else if (Array.isArray(userData.roles)) {
@@ -83,8 +94,35 @@ export function BulkUploadModal({ isOpen, onClose, onUploadComplete }: BulkUploa
         }
       }
       
+      // Verificar si hay una propiedad authorities que contenga ROLE_ADMIN
+      if (userData.authorities && typeof userData.authorities === 'string') {
+        try {
+          const authoritiesObj = JSON.parse(userData.authorities);
+          if (Array.isArray(authoritiesObj)) {
+            const hasAdminAuthority = authoritiesObj.some((auth: any) => 
+              (auth.authority && auth.authority === 'ROLE_ADMIN')
+            );
+            if (hasAdminAuthority) {
+              console.log('Usuario es admin por authorities');
+              setIsAuthorized(true);
+              return;
+            }
+          }
+        } catch (e) {
+          console.log('Error al parsear authorities:', e);
+        }
+      }
+      
+      console.log('Roles procesados:', userRoles);
+      
       // Verificar si el usuario tiene el rol ROLE_ADMIN
-      const isAdmin = userRoles.includes('ROLE_ADMIN')
+      const isAdmin = userRoles.some(role => 
+        role === 'ROLE_ADMIN' || 
+        role.includes('ADMIN') || 
+        role.includes('admin')
+      );
+      
+      console.log('¿Es admin?', isAdmin);
       
       if (!isAdmin) {
         // Si no es administrador, cerrar el modal y mostrar mensaje
@@ -364,11 +402,20 @@ export function BulkUploadModal({ isOpen, onClose, onUploadComplete }: BulkUploa
             await delay(300) // 300ms de espera entre solicitudes
           }
           
+          // Obtener el token actual
+          const token = getToken();
+          
+          if (!token) {
+            throw new Error("No se encontró el token de autenticación");
+          }
+          
+          console.log('Enviando solicitud para crear usuario:', user.usuario);
+          
           // Llamar a la API para crear el usuario usando el endpoint correcto
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/usuarios/save/information`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem("adp_rh_auth_token")}`,
+              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(userData)
@@ -465,9 +512,18 @@ export function BulkUploadModal({ isOpen, onClose, onUploadComplete }: BulkUploa
     XLSX.writeFile(wb, "plantilla_usuarios.xlsx")
   }
 
-  // Solo renderizar el contenido si el usuario está autorizado
+  // Mostrar un indicador de carga mientras se verifica la autorización
   if (!isAuthorized && isOpen) {
-    return null; // No mostrar nada si no está autorizado
+    return (
+      <Dialog open={isOpen} onOpenChange={handleModalClose}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 rounded-2xl border-none shadow-xl">
+          <div className="flex flex-col items-center justify-center py-10">
+            <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-500 dark:text-gray-400">Verificando permisos...</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   }
   
   return (

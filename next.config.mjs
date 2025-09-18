@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configuración de Vercel Analytics
-  // Eliminamos la configuración problemática de analyticsId
+  // Deshabilitar completamente Vercel Analytics
+  analyticsId: false,
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -19,9 +19,9 @@ const nextConfig = {
         // La URL real está hardcodeada aquí para mayor seguridad
         // Solo el servidor tiene acceso a esta URL
         //DESARROLLO
-        //destination: 'https://almacen-dev.adpredcell.com/gateway/api/:path*',
+        destination: 'https://almacen-dev.adpredcell.com/gateway/api/:path*',
         //PRODUCCION
-        destination: 'https://almacen-mx-prod.adpredcell.com/gateway/api/:path*'
+        //destination: 'https://almacen-mx-prod.adpredcell.com/gateway/api/:path*'
       },
     ];
   },
