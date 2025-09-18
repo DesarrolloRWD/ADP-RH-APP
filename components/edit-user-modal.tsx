@@ -59,8 +59,7 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
     image: "",
     estatus: true,
     role: "",
-    tenant: "",
-    allowWebAccess: true // Nueva propiedad para controlar el acceso web
+    tenant: ""
   })
 
   // Cargar roles y tenants cuando se abre el modal
@@ -86,10 +85,6 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
         console.log('Imagen procesada correctamente para el modal de edición');
       }
       
-      // Verificar si el usuario tiene permiso de acceso web
-      const hasWebAccess = user.roles && user.roles.some(role => 
-        role.nombre === 'ROLE_ADMIN' || role.nombre === 'ROLE_RH' || role.nombre === 'ROLE_SUPERVISOR'
-      );
       
       setFormData({
         correo: user.correo || "",
@@ -104,8 +99,7 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
         image: imageUrl || "",
         estatus: user.estatus,
         role: user.roles && user.roles.length > 0 ? user.roles[0].nombre : "",
-        tenant: "", // Se cargará automáticamente del backend
-        allowWebAccess: hasWebAccess // Determinar si tiene acceso web basado en su rol actual
+        tenant: "" // Se cargará automáticamente del backend
       })
       
       // Si el usuario tiene una imagen, mostrarla
@@ -205,7 +199,6 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
           roles: Array<{ nombre: string }>;
           tenant: { nombre: string };
           pswd?: string; // Hacemos que pswd sea opcional
-          allowWebAccess?: boolean; // Nueva propiedad para controlar el acceso web
         };
       } = {
         valueSearch: user?.usuario || "", // Nombre de usuario original para buscar
@@ -220,8 +213,7 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
           rfc: formData.rfc,
           image: formData.image,
           roles: [{ nombre: formData.role }],
-          tenant: { nombre: tenantToUse },
-          allowWebAccess: formData.allowWebAccess // Incluir la configuración de acceso web
+          tenant: { nombre: tenantToUse }
         }
       }
       
@@ -484,28 +476,6 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
             </div>
           </div>
 
-          {/* Control de acceso web */}
-          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 mb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-gray-900 dark:text-white">Acceso a la aplicación web</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Controla si este usuario puede iniciar sesión en la aplicación web</p>
-              </div>
-              <Switch
-                checked={formData.allowWebAccess}
-                onCheckedChange={(checked) => handleInputChange("allowWebAccess", checked)}
-                className="data-[state=checked]:bg-blue-500 dark:data-[state=checked]:bg-blue-600"
-              />
-            </div>
-            {formData.role === 'ROLE_CHECKTIME' && formData.allowWebAccess && (
-              <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                <p className="text-sm text-amber-700 dark:text-amber-400">
-                  <strong>Advertencia:</strong> Este usuario tiene el rol de "Asistencia" que normalmente solo se usa en la app móvil.
-                  Permitir el acceso web podría causar problemas de compatibilidad.
-                </p>
-              </div>
-            )}
-          </div>
 
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2">

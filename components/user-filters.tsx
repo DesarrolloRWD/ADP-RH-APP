@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, forwardRef } from "react"
+import { useState, forwardRef, useEffect } from "react"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Filter, Check } from "lucide-react"
+import { getUserData } from "@/lib/auth"
 
 interface UserFiltersProps {
   onFilterChange: (filters: UserFilters) => void
@@ -26,17 +27,48 @@ export const UserFilters = forwardRef<HTMLButtonElement, UserFiltersProps>(({ on
     roles: [],
     status: null
   })
+  const [isUserRH, setIsUserRH] = useState(false);
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
 
-  // Lista de roles disponibles
+  // Detectar si el usuario actual es RH o ADMIN
+  useEffect(() => {
+    const userData = getUserData();
+    if (userData && userData.roles) {
+      let roles: string[] = [];
+      
+      // Extraer roles del userData
+      if (Array.isArray(userData.roles)) {
+        roles = userData.roles.map((r: any) => {
+          if (typeof r === 'object' && r.nombre) return r.nombre;
+          if (typeof r === 'string') return r;
+          return '';
+        }).filter(Boolean);
+      } else if (typeof userData.roles === 'string') {
+        roles = [userData.roles];
+      }
+      
+      // Verificar si el usuario tiene rol RH o ADMIN
+      setIsUserRH(roles.some(r => r.includes('RH') || r.includes('ROLE_RH')));
+      setIsUserAdmin(roles.some(r => r.includes('ADMIN') || r.includes('ROLE_ADMIN')));
+    }
+  }, []);
+
+  // Lista de roles disponibles filtrada según el rol del usuario
   const availableRoles = [
     { id: "ROLE_RH", name: "Recursos Humanos" },
-    { id: "ROLE_ADMIN", name: "Administrador" },
+    // Solo mostrar el rol ADMIN si el usuario es ADMIN
+    ...(isUserAdmin ? [{ id: "ROLE_ADMIN", name: "Administrador" }] : []),
     { id: "ROLE_CHECKTIME", name: "Asistencia" },
     { id: "ROLE_SUPERVISOR", name: "Supervisor" }
   ]
 
   // Función para manejar cambios en los filtros de rol
   const handleRoleToggle = (roleId: string) => {
+    // Si el usuario es RH y no es ADMIN, no permitir seleccionar el rol ADMIN
+    if (isUserRH && !isUserAdmin && roleId === "ROLE_ADMIN") {
+      return;
+    }
+    
     setFilters(prev => {
       const newRoles = prev.roles.includes(roleId)
         ? prev.roles.filter(id => id !== roleId)

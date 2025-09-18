@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { Permissions } from '@/lib/permissions'
 
 // Rutas que requieren autenticación
 const protectedRoutes = ['/dashboard', '/user', '/admin']
@@ -8,21 +7,8 @@ const protectedRoutes = ['/dashboard', '/user', '/admin']
 // Rutas públicas (no requieren autenticación)
 const publicRoutes = ['/login']
 
-// Configuración de rutas por rol
-const roleRoutes: Record<string, string[]> = {
-  'ROLE_ADMIN': ['/dashboard', '/user', '/admin'],
-  'ROLE_RH': ['/dashboard', '/user'],
-  'ROLE_SUPERVISOR': ['/dashboard'],
-  'ROLE_CHECKTIME': ['/dashboard']
-}
-
-// Permisos requeridos para rutas específicas
-const routePermissions: Record<string, string[]> = {
-  '/login': [Permissions.SYSTEM.LOGIN],
-  '/dashboard': [Permissions.SYSTEM.ACCESS],
-  '/user': [Permissions.SYSTEM.ACCESS, Permissions.USERS.VIEW],
-  '/admin/roles': [Permissions.SYSTEM.ACCESS, Permissions.SETTINGS.EDIT]
-}
+// Roles permitidos para acceder a la aplicación web
+const allowedRoles = ['ROLE_ADMIN', 'ROLE_RH', 'ADMIN', 'RH']
 
 
 // Obtener la URL base de la solicitud actual
@@ -43,34 +29,109 @@ export function middleware(request: NextRequest) {
   const userDataCookie = request.cookies.get('adp_rh_user_data')?.value
   let userData = null;
   let userRoles: string[] = [];
-  let userPermissions: string[] = [];
-  let allowWebAccess: boolean = true; // Por defecto permitir acceso web
   
-  if (userDataCookie) {
+  // Función para decodificar el token JWT compatible con Edge Runtime
+  const decodeToken = (token: string) => {
+    try {
+      const base64Url = token.split('.')[1];
+      if (!base64Url) return null;
+      
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      // Decodificación manual compatible con Edge Runtime
+      const rawData = atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      
+      // Convertir a texto y parsear como JSON
+      const decoder = new TextDecoder('utf-8');
+      const jsonPayload = decoder.decode(outputArray);
+      
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      console.error('Error decoding token:', e);
+      return null;
+    }
+  };
+  
+  // Intentar obtener roles del token directamente
+  if (token) {
+    const decodedToken = decodeToken(token);
+    console.log('Token decodificado:', JSON.stringify(decodedToken));
+    
+    if (decodedToken) {
+      // Intentar extraer roles de diferentes propiedades del token
+      const possibleRoleProperties = ['roles', 'role', 'authorities', 'scope', 'permissions'];
+      
+      for (const prop of possibleRoleProperties) {
+        if (decodedToken[prop]) {
+          const roleData = decodedToken[prop];
+          
+          if (Array.isArray(roleData)) {
+            userRoles = roleData.map((r: any) => {
+              if (typeof r === 'object' && r.nombre) {
+                return r.nombre;
+              } else if (typeof r === 'object' && r.authority) {
+                return r.authority;
+              } else if (typeof r === 'string') {
+                return r;
+              }
+              return '';
+            }).filter(Boolean);
+          } else if (typeof roleData === 'string') {
+            // Si es una cadena, podría ser un solo rol o varios separados por comas o espacios
+            userRoles = roleData.split(/[\s,]+/).filter(Boolean);
+          } else if (typeof roleData === 'object') {
+            // Si es un objeto, intentar extraer propiedades relevantes
+            userRoles = Object.values(roleData).map(v => String(v)).filter(Boolean);
+          }
+          
+          if (userRoles.length > 0) {
+            console.log(`Roles extraídos del token (propiedad ${prop}):`, userRoles);
+            break; // Si encontramos roles, no seguimos buscando
+          }
+        }
+      }
+      
+      // Si no encontramos roles en propiedades específicas, buscar en todo el token
+      if (userRoles.length === 0) {
+        // Buscar cualquier propiedad que pueda contener la palabra 'admin' o 'rh'
+        Object.entries(decodedToken).forEach(([key, value]) => {
+          const valueStr = String(value).toUpperCase();
+          if (valueStr.includes('ADMIN') || valueStr.includes('RH')) {
+            userRoles.push(valueStr);
+            console.log(`Rol encontrado en propiedad ${key}:`, valueStr);
+          }
+        });
+      }
+    }
+  }
+  
+  // Si no se pudieron extraer roles del token, intentar con los datos de usuario en la cookie
+  if (userRoles.length === 0 && userDataCookie) {
     try {
       userData = JSON.parse(userDataCookie);
       // Extraer roles del usuario si existen
       if (userData && userData.roles) {
-        userRoles = Array.isArray(userData.roles) 
-          ? userData.roles.map((r: any) => r.nombre || r) 
-          : [userData.roles];
-      }
-      
-      // Extraer permisos del usuario si existen
-      if (userData && userData.permissions) {
-        userPermissions = userData.permissions;
-      }
-      
-      // Verificar si el usuario tiene permiso de acceso web
-      if (userData.hasOwnProperty('allowWebAccess')) {
-        allowWebAccess = userData.allowWebAccess;
-      } else {
-        // Si no está especificado, determinar por el rol
-        // Los usuarios con rol ROLE_CHECKTIME no tienen acceso web por defecto
-        allowWebAccess = !userRoles.includes('ROLE_CHECKTIME');
+        if (Array.isArray(userData.roles)) {
+          userRoles = userData.roles.map((r: any) => {
+            if (typeof r === 'object' && r.nombre) {
+              return r.nombre;
+            } else if (typeof r === 'string') {
+              return r;
+            }
+            return '';
+          }).filter(Boolean);
+        } else if (typeof userData.roles === 'string') {
+          userRoles = [userData.roles];
+        }
+        
+        console.log('Roles extraídos de la cookie:', userRoles);
       }
     } catch (e) {
-      console.error('Error parsing user data from cookie');
+      console.error('Error parsing user data from cookie:', e);
     }
   }
   
@@ -83,18 +144,11 @@ export function middleware(request: NextRequest) {
   // Obtener la URL base
   const baseUrl = getBaseUrl(request)
   
-  // Verificar permisos para la ruta de login
+  // Verificar para la ruta de login
   if (pathname.startsWith('/login')) {
     // Siempre permitir acceso a la página de login
     // Esto evita redirecciones infinitas cuando hay tokens expirados
     return NextResponse.next();
-  }
-  
-  // Verificar acceso web para todas las rutas excepto /login y /blocked
-  if (token && !pathname.startsWith('/blocked') && !allowWebAccess) {
-    // Si el usuario no tiene permiso de acceso web, redirigir a la página de acceso bloqueado
-    const url = new URL('/blocked', baseUrl);
-    return NextResponse.redirect(url);
   }
   
   // Si es una ruta protegida y no hay token, redirigir al login
@@ -107,63 +161,60 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
   
-  // Si es una ruta protegida y hay token, verificar permisos por rol
-  if (isProtectedRoute && token && userRoles.length > 0) {
-    // 1. Verificar si el usuario tiene el permiso de acceso al sistema
-    const hasAccessPermission = userRoles.some(role => {
-      return roleRoutes[role] && roleRoutes[role].includes('/dashboard');
-    });
-    
-    if (!hasAccessPermission) {
-      const url = new URL('/access-denied', baseUrl);
-      return NextResponse.redirect(url);
-    }
-    
-    // 2. Verificar si el usuario tiene permiso para acceder a esta ruta específica
-    const hasRoutePermission = userRoles.some(role => {
-      // Si el rol existe en la configuración y la ruta actual comienza con alguna de las rutas permitidas
-      return roleRoutes[role] && roleRoutes[role].some(route => pathname.startsWith(route));
-    });
-    
-    // Si no tiene permiso para esta ruta, redirigir a una página de acceso denegado
-    if (!hasRoutePermission) {
-      const url = new URL('/access-denied', baseUrl);
-      return NextResponse.redirect(url);
-    }
-    
-    // 3. Verificar permisos específicos para ciertas rutas
-    // Obtener los permisos requeridos para la ruta actual
-    let requiredPermissions: string[] = [];
-    
-    // Buscar la ruta más específica que coincida con el pathname actual
-    Object.keys(routePermissions).forEach(route => {
-      if (pathname.startsWith(route)) {
-        // Si encontramos una ruta más específica, usamos esos permisos
-        if (!requiredPermissions.length || route.length > requiredPermissions.length) {
-          requiredPermissions = routePermissions[route];
-        }
-      }
-    });
-    
-    // Si hay permisos requeridos para esta ruta, verificar si el usuario los tiene
-    if (requiredPermissions.length > 0) {
-      // Verificar si el usuario tiene todos los permisos requeridos
-      const hasAllRequiredPermissions = requiredPermissions.every(permission => 
-        userPermissions.includes(permission)
-      );
+  // Si es una ruta protegida y hay token, verificar si el usuario tiene un rol permitido
+  if (isProtectedRoute && token) {
+    // Verificar si el usuario tiene al menos uno de los roles permitidos
+    const hasAllowedRole = userRoles.some(role => {
+      if (!role) return false;
       
-      // Si no tiene todos los permisos requeridos, redirigir a una página de acceso denegado
-      if (!hasAllRequiredPermissions) {
-        const url = new URL('/access-denied', baseUrl);
-        return NextResponse.redirect(url);
-      }
+      // Normalizar el rol para la comparación (eliminar espacios, convertir a mayúsculas)
+      const normalizedRole = typeof role === 'string' ? role.trim().toUpperCase() : '';
+      
+      // Verificar si el rol normalizado contiene alguno de los roles permitidos
+      return allowedRoles.some(allowedRole => {
+        return normalizedRole === allowedRole || 
+               normalizedRole.includes(`ROLE_${allowedRole}`) || 
+               normalizedRole.includes(allowedRole);
+      });
+    });
+    
+    console.log('Roles del usuario:', userRoles);
+    console.log('Roles permitidos:', allowedRoles);
+    console.log('¿Tiene rol permitido?', hasAllowedRole);
+    
+    // Si no tiene un rol permitido, redirigir a una página de acceso denegado
+    if (!hasAllowedRole) {
+      const url = new URL('/access-denied', baseUrl);
+      return NextResponse.redirect(url);
     }
   }
   
-  // Si es una ruta pública (como login) y hay token, redirigir al dashboard
+  // Si es una ruta pública (como login) y hay token, verificar si el usuario tiene un rol permitido
   if (isPublicRoute && token) {
-    const url = new URL('/dashboard', baseUrl)
-    return NextResponse.redirect(url)
+    // Verificar si el usuario tiene al menos uno de los roles permitidos
+    const hasAllowedRole = userRoles.some(role => {
+      if (!role) return false;
+      
+      // Normalizar el rol para la comparación (eliminar espacios, convertir a mayúsculas)
+      const normalizedRole = typeof role === 'string' ? role.trim().toUpperCase() : '';
+      
+      // Verificar si el rol normalizado contiene alguno de los roles permitidos
+      return allowedRoles.some(allowedRole => {
+        return normalizedRole === allowedRole || 
+               normalizedRole.includes(`ROLE_${allowedRole}`) || 
+               normalizedRole.includes(allowedRole);
+      });
+    });
+    
+    // Si tiene un rol permitido, redirigir al dashboard
+    if (hasAllowedRole) {
+      const url = new URL('/dashboard', baseUrl)
+      return NextResponse.redirect(url)
+    } else {
+      // Si no tiene un rol permitido, redirigir a una página de acceso denegado
+      const url = new URL('/access-denied', baseUrl);
+      return NextResponse.redirect(url);
+    }
   }
   
   // Si la ruta es la raíz (/), redirigir según si hay token o no

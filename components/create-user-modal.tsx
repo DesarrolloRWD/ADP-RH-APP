@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { UserPlus, Loader2, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { getRoles, getTenants, Role, Tenant } from "@/lib/api"
+import { getUserData } from "@/lib/auth"
 
 interface CreateUserModalProps {
   isOpen: boolean
@@ -27,7 +28,32 @@ export function CreateUserModal({ isOpen, onClose, onUserCreated }: CreateUserMo
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [rolesError, setRolesError] = useState<string | null>(null)
   const [tenantsError, setTenantsError] = useState<string | null>(null)
+  const [isUserRH, setIsUserRH] = useState(false)
+  const [isUserAdmin, setIsUserAdmin] = useState(false)
   const { toast } = useToast()
+  
+  // Detectar si el usuario actual es RH o ADMIN
+  useEffect(() => {
+    const userData = getUserData();
+    if (userData && userData.roles) {
+      let roles: string[] = [];
+      
+      // Extraer roles del userData
+      if (Array.isArray(userData.roles)) {
+        roles = userData.roles.map((r: any) => {
+          if (typeof r === 'object' && r.nombre) return r.nombre;
+          if (typeof r === 'string') return r;
+          return '';
+        }).filter(Boolean);
+      } else if (typeof userData.roles === 'string') {
+        roles = [userData.roles];
+      }
+      
+      // Verificar si el usuario tiene rol RH o ADMIN
+      setIsUserRH(roles.some(r => r.includes('RH') || r.includes('ROLE_RH')));
+      setIsUserAdmin(roles.some(r => r.includes('ADMIN') || r.includes('ROLE_ADMIN')));
+    }
+  }, []);
   
   // Cargar roles y tenants cuando se abre el modal
   useEffect(() => {
@@ -44,7 +70,13 @@ export function CreateUserModal({ isOpen, onClose, onUserCreated }: CreateUserMo
     
     try {
       const rolesData = await getRoles()
-      setRoles(rolesData)
+      
+      // Si el usuario es RH pero no es ADMIN, filtrar el rol ADMIN
+      if (isUserRH && !isUserAdmin) {
+        setRoles(rolesData.filter(role => role.nombre !== 'ROLE_ADMIN'))
+      } else {
+        setRoles(rolesData)
+      }
     } catch (error) {
       console.error('Error al cargar los roles:', error)
       setRolesError('No se pudieron cargar los roles. Por favor, intenta nuevamente.')
@@ -143,12 +175,22 @@ export function CreateUserModal({ isOpen, onClose, onUserCreated }: CreateUserMo
         usuarioFinal = `zoques_${usuarioFinal}`;
       }
       
-      console.log('Enviando solicitud para crear usuario:', {
-        ...formData,
+      // Crear el objeto de datos para enviar, excluyendo imagen y estatus
+      const userData = {
+        correo: formData.correo,
+        nombre: formData.nombre,
+        apdPaterno: formData.apdPaterno,
+        apdMaterno: formData.apdMaterno,
         usuario: usuarioFinal, // Usar el nombre de usuario con el prefijo 'zoques_'
+        curp: formData.curp,
+        telefono: formData.telefono,
+        rfc: formData.rfc,
+        pswd: formData.pswd,
         roles: [{ nombre: formData.role }],
         tenant: { nombre: tenantToUse }
-      });
+      };
+      
+      console.log('Enviando solicitud para crear usuario:', userData);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/usuarios/save/information`, {
         method: "POST",
@@ -156,12 +198,7 @@ export function CreateUserModal({ isOpen, onClose, onUserCreated }: CreateUserMo
           Authorization: `Bearer ${localStorage.getItem("adp_rh_auth_token")}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...formData,
-          usuario: usuarioFinal, // Usar el nombre de usuario con el prefijo 'zoques_'
-          roles: [{ nombre: formData.role }],
-          tenant: { nombre: tenantToUse }
-        }),
+        body: JSON.stringify(userData),
       })
 
       if (response.ok) {

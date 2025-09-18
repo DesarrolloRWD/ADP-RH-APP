@@ -5,7 +5,7 @@
 
 :root {
   /* Updated color tokens to match the blue and gray design from the image */
-  --background: oklch(0.98 0 0); /* #fafafa - light gray background */
+  --background: oklch(0.95 0.01 240); /* #f0f2f5 - light blue-gray background */
   --foreground: oklch(0.35 0.02 258); /* #374151 - dark gray text */
   --card: oklch(1 0 0); /* #ffffff - white cards */
   --card-foreground: oklch(0.35 0.02 258); /* #374151 - dark gray text on cards */
@@ -41,7 +41,7 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(0.12 0.02 240); /* #121620 - darker blue-gray background */
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.145 0 0);
   --card-foreground: oklch(0.985 0 0);

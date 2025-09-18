@@ -107,7 +107,7 @@ export function UserCard({ user, onUpdateStatus, onEditUser }: UserCardProps) {
   }
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200 border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl overflow-hidden">
+    <Card className="group hover:shadow-lg transition-all duration-200 border-white/50 dark:border-gray-700 bg-white dark:bg-gray-900/90 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-2xl overflow-hidden">
       <CardContent className="p-5">
         <div className="flex items-start gap-4">
           <Avatar className="w-14 h-14 border-2 border-white dark:border-gray-800 shadow-sm">

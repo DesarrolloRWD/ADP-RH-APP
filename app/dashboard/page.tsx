@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Users, Clock, Calendar, Search, UserCheck, Building, LogOut, UserPlus, Loader2, Settings, FileText, Shield } from "lucide-react"
-import { AdminMenu } from "@/components/admin-menu"
+import { Users, Clock, Calendar, Search, UserCheck, LogOut, UserPlus, Loader2 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { UserCard } from "@/components/user-card"
 import { StatsCard } from "@/components/stats-card"
@@ -16,14 +15,9 @@ import { EditUserModal } from "@/components/edit-user-modal"
 import { UserFilters, UserFilters as UserFiltersType } from "@/components/user-filters"
 import { useRouter } from "next/navigation"
 import AuthGuard from "@/components/auth-guard"
-import RoleGuard from "@/components/role-guard"
-import RoleContent from "@/components/role-content"
-import PermissionGuard from "@/components/permission-guard"
 import { getToken, logout, getUserData } from "@/lib/auth"
 import { updateUserStatus, getSpecificUser } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { usePermissions } from "@/hooks/use-permissions"
-import { Permissions } from "@/lib/permissions"
 
 interface User {
   correo: string
@@ -41,8 +35,6 @@ interface User {
 }
 
 export default function DashboardPage() {
-  // Usar el hook de permisos
-  const { hasPermission, hasRole, roles, permissions, isLoading: isLoadingPermissions } = usePermissions()
   const [users, setUsers] = useState<User[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -100,8 +92,16 @@ export default function DashboardPage() {
     }
   }
 
-  // Verificar si el usuario tiene permiso para ver administradores
-  const canViewAdmins = hasPermission(Permissions.USERS.VIEW_ADMINS)
+  // Verificar si el usuario actual tiene rol de RH (no ADMIN)
+  const isCurrentUserRH = () => {
+    if (!currentUser || !currentUser.roles) return false;
+    
+    const isRH = currentUser.roles.some(role => role.nombre === 'ROLE_RH');
+    const isAdmin = currentUser.roles.some(role => role.nombre === 'ROLE_ADMIN');
+    
+    // Si es RH pero no es ADMIN
+    return isRH && !isAdmin;
+  };
 
   useEffect(() => {
     // Aplicar filtros a los usuarios
@@ -112,11 +112,11 @@ export default function DashboardPage() {
         user.correo.toLowerCase().includes(searchTerm.toLowerCase()))
     )
     
-    // Ocultar usuarios administradores si el usuario no tiene permiso para verlos
-    if (!canViewAdmins) {
+    // Si el usuario actual es RH (no ADMIN), ocultar usuarios con rol ADMIN
+    if (isCurrentUserRH()) {
       filtered = filtered.filter(user => 
         !user.roles.some(role => role.nombre === 'ROLE_ADMIN')
-      )
+      );
     }
     
     // Filtrar por roles si hay roles seleccionados
@@ -134,7 +134,7 @@ export default function DashboardPage() {
     }
     
     setFilteredUsers(filtered)
-  }, [users, searchTerm, activeFilters, canViewAdmins])
+  }, [users, searchTerm, activeFilters])
 
   const fetchUsers = async (pageNum = 1, reset = true) => {
     try {
@@ -275,7 +275,7 @@ export default function DashboardPage() {
     <AuthGuard>
       <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-gray-100 dark:bg-gray-900/80 dark:border-gray-800">
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-white/50 dark:bg-gray-900/90 dark:border-gray-700 shadow-sm">
         <div className="container mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -288,13 +288,6 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {/* Menú de administración con acceso a roles y otras opciones */}
-              <AdminMenu />
-              
-              <Badge variant="secondary" className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-none px-2.5 py-1 rounded-full">
-                <Building className="w-3.5 h-3.5 mr-1.5" />
-                Administrador
-              </Badge>
               <ThemeToggle />
               <Avatar className="border-2 border-white dark:border-gray-800 shadow-sm">
                 {currentUser && currentUser.image ? (
@@ -329,7 +322,7 @@ export default function DashboardPage() {
       <div className="container mx-auto px-6 py-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-2xl p-5 shadow-md border border-white/50 dark:border-gray-700 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Empleados</h3>
               <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
@@ -350,7 +343,7 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/30 dark:to-teal-900/30 rounded-2xl p-5 shadow-md border border-white/50 dark:border-gray-700 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Usuarios Activos</h3>
               <div className="w-9 h-9 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
@@ -371,7 +364,7 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-2xl p-5 shadow-md border border-white/50 dark:border-gray-700 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Acceso Reciente</h3>
               <div className="w-9 h-9 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
@@ -394,7 +387,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Users Section */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="bg-white dark:bg-gray-900/90 rounded-2xl shadow-md border border-white/50 dark:border-gray-700 overflow-hidden">
           <div className="p-6 pb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
@@ -408,47 +401,20 @@ export default function DashboardPage() {
                     placeholder="Buscar empleados..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-full sm:w-64 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-full text-sm"
+                    className="pl-10 w-full sm:w-64 bg-white dark:bg-gray-800/80 border-white/50 dark:border-gray-700 rounded-full text-sm shadow-sm"
                   />
                 </div>
                 <UserFilters onFilterChange={handleFilterChange} />
                 
-                {/* Botón para crear usuario - solo visible con permiso */}
-                <PermissionGuard permission={Permissions.USERS.CREATE}>
-                  <Button
-                    size="sm"
-                    onClick={() => setIsCreateUserModalOpen(true)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-sm"
-                  >
-                    <UserPlus className="w-4 h-4 mr-1.5" />
-                    Nuevo Usuario
-                  </Button>
-                </PermissionGuard>
-                
-                {/* Botón para reportes - solo visible con permiso */}
-                <PermissionGuard permission={Permissions.REPORTS.VIEW}>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-full"
-                  >
-                    <FileText className="w-4 h-4 mr-1.5" />
-                    Reportes
-                  </Button>
-                </PermissionGuard>
-                
-                {/* Botón de configuración - solo para administradores */}
-                <RoleContent allowedRoles={['ROLE_ADMIN']}>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-full"
-                    onClick={() => router.push('/admin/roles')}
-                  >
-                    <Shield className="w-4 h-4 mr-1.5" />
-                    Administrar Roles
-                  </Button>
-                </RoleContent>
+                {/* Botón para crear usuario */}
+                <Button
+                  size="sm"
+                  onClick={() => setIsCreateUserModalOpen(true)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-sm"
+                >
+                  <UserPlus className="w-4 h-4 mr-1.5" />
+                  Nuevo Usuario
+                </Button>
               </div>
             </div>
           </div>
@@ -457,7 +423,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="animate-pulse">
-                    <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl h-36"></div>
+                    <div className="bg-white/50 dark:bg-gray-800/50 rounded-2xl h-36 border border-white/30 dark:border-gray-700/50 shadow-sm"></div>
                   </div>
                 ))}
               </div>
@@ -467,8 +433,8 @@ export default function DashboardPage() {
                   <UserCard 
                     key={user.usuario} 
                     user={user} 
-                    onUpdateStatus={hasPermission(Permissions.USERS.MANAGE_STATUS) ? handleUpdateUserStatus : undefined}
-                    onEditUser={hasPermission(Permissions.USERS.EDIT) ? handleEditUser : undefined}
+                    onUpdateStatus={handleUpdateUserStatus}
+                    onEditUser={handleEditUser}
                   />
                 ))}
               </div>

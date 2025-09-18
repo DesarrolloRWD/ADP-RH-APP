@@ -393,8 +393,9 @@ export interface UpdateInformationRequest {
  * @returns Promesa con la respuesta del servidor
  */
 export async function updateUserInformation(request: UpdateInformationRequest): Promise<any> {
-  // Usar el endpoint correcto que funciona en la otra aplicación
-  const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/usuarios/update/information`;
+  // Intentar primero con el nuevo endpoint que funciona en la otra aplicación
+  // Si falla, intentar con el endpoint original
+  const originalApiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/usuarios/update/information`;
   
   try {
     // Asegurarse de que estamos en el cliente antes de acceder a localStorage
@@ -407,8 +408,30 @@ export async function updateUserInformation(request: UpdateInformationRequest): 
       throw new Error('No hay token de autenticación disponible');
     }
     
-    // Limpiar y validar los datos antes de enviarlos
-    const cleanedRequest = {
+    // Preparar la versión simplificada del request (formato que funciona en la otra app)
+    const simplifiedRequest = {
+      valueSearch: request.valueSearch,
+      usuarioInformationRequest: {
+        correo: request.usuarioInformationRequest.correo || '',
+        nombre: request.usuarioInformationRequest.nombre || '',
+        apdPaterno: request.usuarioInformationRequest.apdPaterno || '',
+        apdMaterno: request.usuarioInformationRequest.apdMaterno || '',
+        telefono: request.usuarioInformationRequest.telefono || '',
+        curp: request.usuarioInformationRequest.curp || '',
+        rfc: request.usuarioInformationRequest.rfc || '',
+        // Incluir el campo pswd (contraseña) si está presente en la solicitud original
+        ...(request.usuarioInformationRequest.pswd && {
+          pswd: request.usuarioInformationRequest.pswd
+        }),
+        // Incluir el campo usuario si está presente
+        ...(request.usuarioInformationRequest.usuario && {
+          usuario: request.usuarioInformationRequest.usuario
+        })
+      }
+    };
+    
+    // Preparar la versión completa del request (formato original)
+    const fullRequest = {
       valueSearch: request.valueSearch,
       usuarioInformationRequest: {
         ...request.usuarioInformationRequest,
@@ -426,17 +449,35 @@ export async function updateUserInformation(request: UpdateInformationRequest): 
       }
     };
     
-    console.log('Enviando solicitud para actualizar usuario (limpia):', cleanedRequest);
+    // Registrar para depuración
+    console.log('JSON para actualizar usuario en Postman:');
+    console.log(JSON.stringify(simplifiedRequest, null, 2));
+    console.log('URL:', originalApiUrl);
+    console.log('Método: PUT');
+    console.log('Headers: Content-Type: application/json, Authorization: Bearer [token]');
     
-    // Usar PUT como requiere el servidor
-    const response = await fetch(apiUrl, {
+    // Intentar primero con el nuevo endpoint y formato simplificado
+    let response = await fetch(originalApiUrl, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(cleanedRequest)
+      body: JSON.stringify(simplifiedRequest)
     });
+    
+    // Si falla, intentar con el endpoint y formato original
+    if (!response.ok && response.status >= 400) {
+      console.log('Primer intento fallido, probando con endpoint original...');
+      response = await fetch(originalApiUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(fullRequest)
+      });
+    }
     
     // Registrar la respuesta para depuración
     console.log('Respuesta del servidor:', response.status);

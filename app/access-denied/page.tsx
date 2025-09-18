@@ -23,8 +23,13 @@ export default function AccessDeniedPage() {
           <Shield className="w-8 h-8 text-white" />
         </div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Acceso Denegado</h1>
+        <p className="text-gray-500 dark:text-gray-400 mb-3">
+          No tienes permisos suficientes para acceder a esta aplicación web.
+        </p>
+        <p className="text-gray-600 dark:text-gray-300 font-medium mb-2">
+          Solo los usuarios con roles de <span className="font-bold text-red-600 dark:text-red-400">Administrador</span> o <span className="font-bold text-red-600 dark:text-red-400">Recursos Humanos</span> pueden acceder.
+        </p>
         <p className="text-gray-500 dark:text-gray-400 mb-8">
-          No tienes permisos suficientes para acceder a esta página.
           Contacta al administrador si crees que deberías tener acceso.
         </p>
         
