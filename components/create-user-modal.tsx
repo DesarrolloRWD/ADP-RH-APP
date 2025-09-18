@@ -190,7 +190,6 @@ export function CreateUserModal({ isOpen, onClose, onUserCreated }: CreateUserMo
         tenant: { nombre: tenantToUse }
       };
       
-      //console.log('Enviando solicitud para crear usuario:', userData);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/usuarios/save/information`, {
         method: "POST",

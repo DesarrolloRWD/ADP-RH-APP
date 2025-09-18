@@ -185,7 +185,7 @@ export async function updateUserStatus(request: UpdateStatusRequest): Promise<an
       throw new Error('No hay token de autenticación disponible');
     }
     
-    //console.log('Enviando solicitud para actualizar estado:', request);
+    ////console.log('Enviando solicitud para actualizar estado:', request);
     
     const response = await fetch(apiUrl, {
       method: 'PUT', // El servidor espera el método PUT
@@ -200,7 +200,7 @@ export async function updateUserStatus(request: UpdateStatusRequest): Promise<an
     });
 
     // Registrar la respuesta para depuración
-    //console.log('Respuesta del servidor:', response.status);
+    ////console.log('Respuesta del servidor:', response.status);
     
     if (!response.ok) {
       let errorMessage = 'Error al actualizar el estado del usuario';
@@ -214,7 +214,7 @@ export async function updateUserStatus(request: UpdateStatusRequest): Promise<an
     }
 
     const data = await response.json();
-    //console.log('Datos de respuesta:', data);
+    ////console.log('Datos de respuesta:', data);
     return data;
   } catch (error) {
     console.error('Error al actualizar el estado del usuario:', error);
@@ -325,7 +325,7 @@ export async function getAttendanceHistory(request: AttendanceHistoryRequest): P
       throw new Error('No hay token de autenticación disponible');
     }
     
-    //console.log('Consultando historial de asistencias:', request);
+    ////console.log('Consultando historial de asistencias:', request);
     
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -337,17 +337,17 @@ export async function getAttendanceHistory(request: AttendanceHistoryRequest): P
     });
     
     // Registrar la respuesta para depuración
-    //console.log('Respuesta del servidor:', response.status);
+    ////console.log('Respuesta del servidor:', response.status);
 
     if (!response.ok) {
       let errorMessage = 'Error al obtener el historial de asistencias';
       try {
         const errorData = await response.json();
         errorMessage = errorData.message || errorMessage;
-        //console.log('Detalles del error:', errorData);
+        ////console.log('Detalles del error:', errorData);
       } catch (e) {
         // Si no se puede parsear como JSON, usar el mensaje por defecto
-        //console.log('No se pudo obtener detalles del error');
+        ////console.log('No se pudo obtener detalles del error');
       }
       throw new Error(errorMessage);
     }
@@ -449,12 +449,7 @@ export async function updateUserInformation(request: UpdateInformationRequest): 
       }
     };
     
-    // Registrar para depuración
-    //console.log('JSON para actualizar usuario en Postman:');
-    //console.log(JSON.stringify(simplifiedRequest, null, 2));
-    //console.log('URL:', originalApiUrl);
-    //console.log('Método: PUT');
-    //console.log('Headers: Content-Type: application/json, Authorization: Bearer [token]');
+
     
     // Intentar primero con el nuevo endpoint y formato simplificado
     let response = await fetch(originalApiUrl, {
@@ -468,7 +463,7 @@ export async function updateUserInformation(request: UpdateInformationRequest): 
     
     // Si falla, intentar con el endpoint y formato original
     if (!response.ok && response.status >= 400) {
-      //console.log('Primer intento fallido, probando con endpoint original...');
+      ////console.log('Primer intento fallido, probando con endpoint original...');
       response = await fetch(originalApiUrl, {
         method: 'PUT',
         headers: {
@@ -480,17 +475,17 @@ export async function updateUserInformation(request: UpdateInformationRequest): 
     }
     
     // Registrar la respuesta para depuración
-    //console.log('Respuesta del servidor:', response.status);
+    ////console.log('Respuesta del servidor:', response.status);
 
     if (!response.ok) {
       let errorMessage = 'Error al actualizar la información del usuario';
       try {
         const errorData = await response.json();
         errorMessage = errorData.message || errorMessage;
-        //console.log('Detalles del error:', errorData);
+        ////console.log('Detalles del error:', errorData);
       } catch (e) {
         // Si no se puede parsear como JSON, usar el mensaje por defecto
-        //console.log('No se pudo obtener detalles del error');
+        ////console.log('No se pudo obtener detalles del error');
       }
       throw new Error(errorMessage);
     }
@@ -518,7 +513,7 @@ export async function getAttendanceDetail(request: AttendanceDetailRequest): Pro
       throw new Error('No hay token de autenticación disponible');
     }
     
-    //console.log('Consultando detalles de registro de asistencia:', request);
+    ////console.log('Consultando detalles de registro de asistencia:', request);
     
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -530,17 +525,17 @@ export async function getAttendanceDetail(request: AttendanceDetailRequest): Pro
     });
     
     // Registrar la respuesta para depuración
-    //console.log('Respuesta del servidor:', response.status);
+    ////console.log('Respuesta del servidor:', response.status);
 
     if (!response.ok) {
       let errorMessage = 'Error al obtener detalles del registro de asistencia';
       try {
         const errorData = await response.json();
         errorMessage = errorData.message || errorMessage;
-        //console.log('Detalles del error:', errorData);
+        ////console.log('Detalles del error:', errorData);
       } catch (e) {
         // Si no se puede parsear como JSON, usar el mensaje por defecto
-        //console.log('No se pudo obtener detalles del error');
+        ////console.log('No se pudo obtener detalles del error');
       }
       throw new Error(errorMessage);
     }
@@ -592,7 +587,7 @@ export async function getSpecificUser(request: SpecificUserRequest): Promise<Spe
       throw new Error('No hay token de autenticación disponible');
     }
     
-    //console.log('Consultando información específica de usuario:', request);
+    ////console.log('Consultando información específica de usuario:', request);
     
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -604,17 +599,17 @@ export async function getSpecificUser(request: SpecificUserRequest): Promise<Spe
     });
     
     // Registrar la respuesta para depuración
-    //console.log('Respuesta del servidor:', response.status);
+    ////console.log('Respuesta del servidor:', response.status);
 
     if (!response.ok) {
       let errorMessage = 'Error al obtener información específica del usuario';
       try {
         const errorData = await response.json();
         errorMessage = errorData.message || errorMessage;
-        //console.log('Detalles del error:', errorData);
+        ////console.log('Detalles del error:', errorData);
       } catch (e) {
         // Si no se puede parsear como JSON, usar el mensaje por defecto
-        //console.log('No se pudo obtener detalles del error');
+        ////console.log('No se pudo obtener detalles del error');
       }
       throw new Error(errorMessage);
     }

@@ -88,7 +88,7 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
         } else {
           imageUrl = user.image;
         }
-        //console.log('Imagen procesada correctamente para el modal de edición');
+        ////console.log('Imagen procesada correctamente para el modal de edición');
       }
       
       
@@ -228,7 +228,7 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
         updateData.usuarioInformationRequest.pswd = formData.pswd
       }
       
-      //console.log('Enviando solicitud para actualizar usuario:', updateData)
+      ////console.log('Enviando solicitud para actualizar usuario:', updateData)
       
       // Actualizar la información del usuario
       await updateUserInformation(updateData)

@@ -59,7 +59,7 @@ export function middleware(request: NextRequest) {
   // Intentar obtener roles del token directamente
   if (token) {
     const decodedToken = decodeToken(token);
-    //console.log('Token decodificado:', JSON.stringify(decodedToken));
+    ////console.log('Token decodificado:', JSON.stringify(decodedToken));
     
     if (decodedToken) {
       // Intentar extraer roles de diferentes propiedades del token
@@ -128,7 +128,7 @@ export function middleware(request: NextRequest) {
           userRoles = [userData.roles];
         }
         
-        //console.log('Roles extraídos de la cookie:', userRoles);
+        ////console.log('Roles extraídos de la cookie:', userRoles);
       }
     } catch (e) {
       console.error('Error parsing user data from cookie:', e);
@@ -178,9 +178,9 @@ export function middleware(request: NextRequest) {
       });
     });
     
-    //console.log('Roles del usuario:', userRoles);
-    //console.log('Roles permitidos:', allowedRoles);
-    //console.log('¿Tiene rol permitido?', hasAllowedRole);
+    ////console.log('Roles del usuario:', userRoles);
+    ////console.log('Roles permitidos:', allowedRoles);
+    ////console.log('¿Tiene rol permitido?', hasAllowedRole);
     
     // Si no tiene un rol permitido, redirigir a una página de acceso denegado
     if (!hasAllowedRole) {

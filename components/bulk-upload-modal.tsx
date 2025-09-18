@@ -68,17 +68,17 @@ export function BulkUploadModal({ isOpen, onClose, onUploadComplete }: BulkUploa
       // Extraer roles del usuario
       let userRoles: string[] = []
       
-      console.log('userData en BulkUploadModal:', userData);
+      //console.log('userData en BulkUploadModal:', userData);
       
       // Verificar si el usuario tiene isAdmin=true en el token
       if (userData.isAdmin === true) {
-        console.log('Usuario es admin por propiedad isAdmin');
+        //console.log('Usuario es admin por propiedad isAdmin');
         setIsAuthorized(true);
         return;
       }
       
       if (userData.roles) {
-        console.log('Roles encontrados:', userData.roles);
+        //console.log('Roles encontrados:', userData.roles);
         
         // Si roles es un array de objetos con propiedad nombre
         if (Array.isArray(userData.roles) && typeof userData.roles[0] === 'object') {
@@ -103,17 +103,17 @@ export function BulkUploadModal({ isOpen, onClose, onUploadComplete }: BulkUploa
               (auth.authority && auth.authority === 'ROLE_ADMIN')
             );
             if (hasAdminAuthority) {
-              console.log('Usuario es admin por authorities');
+              //console.log('Usuario es admin por authorities');
               setIsAuthorized(true);
               return;
             }
           }
         } catch (e) {
-          console.log('Error al parsear authorities:', e);
+          //console.log('Error al parsear authorities:', e);
         }
       }
       
-      console.log('Roles procesados:', userRoles);
+      //console.log('Roles procesados:', userRoles);
       
       // Verificar si el usuario tiene el rol ROLE_ADMIN
       const isAdmin = userRoles.some(role => 
@@ -122,7 +122,7 @@ export function BulkUploadModal({ isOpen, onClose, onUploadComplete }: BulkUploa
         role.includes('admin')
       );
       
-      console.log('¿Es admin?', isAdmin);
+      //console.log('¿Es admin?', isAdmin);
       
       if (!isAdmin) {
         // Si no es administrador, cerrar el modal y mostrar mensaje
@@ -409,7 +409,7 @@ export function BulkUploadModal({ isOpen, onClose, onUploadComplete }: BulkUploa
             throw new Error("No se encontró el token de autenticación");
           }
           
-          console.log('Enviando solicitud para crear usuario:', user.usuario);
+         
           
           // Llamar a la API para crear el usuario usando el endpoint correcto
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/usuarios/save/information`, {
