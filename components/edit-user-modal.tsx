@@ -35,6 +35,12 @@ interface EditUserModalProps {
 }
 
 export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUserModalProps) {
+  // Referencia para manejar el cierre limpio del modal
+  const handleModalClose = () => {
+    // Limpiar estados que podrían causar problemas de DOM
+    setImagePreview(null);
+    onClose();
+  };
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingRoles, setIsLoadingRoles] = useState(false)
   const [isLoadingTenants, setIsLoadingTenants] = useState(false)
@@ -250,45 +256,80 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
   }
   
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    // Limpiar el valor del input para permitir seleccionar el mismo archivo nuevamente
+    const input = e.target;
+    const file = input.files?.[0];
+    if (!file) return;
     
-    setIsUploadingImage(true)
+    // Validar el tipo de archivo
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validImageTypes.includes(file.type)) {
+      toast({
+        title: "Formato no soportado",
+        description: "Por favor, selecciona una imagen en formato JPG, PNG, GIF o WebP.",
+        variant: "destructive",
+      });
+      // Limpiar el input para permitir intentar nuevamente
+      if (input) input.value = '';
+      return;
+    }
+    
+    // Validar tamaño del archivo (máximo 2MB)
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    if (file.size > maxSize) {
+      toast({
+        title: "Imagen demasiado grande",
+        description: "La imagen no debe superar los 2MB de tamaño.",
+        variant: "destructive",
+      });
+      // Limpiar el input para permitir intentar nuevamente
+      if (input) input.value = '';
+      return;
+    }
+    
+    setIsUploadingImage(true);
     
     try {
       // Convertir la imagen a base64
-      const base64Image = await convertToBase64(file)
+      const base64Image = await convertToBase64(file);
+      
+      if (!base64Image) {
+        throw new Error("No se pudo convertir la imagen");
+      }
       
       // Actualizar el preview
-      setImagePreview(base64Image as string)
+      setImagePreview(base64Image as string);
       
       // Actualizar el formData
       setFormData(prev => ({
         ...prev,
         image: base64Image as string
-      }))
+      }));
       
       // Si tenemos el usuario, actualizar la imagen directamente
       if (user && user.usuario) {
         await updateUserImage({
           value: user.usuario,
           image: base64Image as string
-        })
+        });
         
         toast({
           title: "Imagen actualizada",
           description: "La imagen del usuario ha sido actualizada correctamente.",
-        })
+        });
       }
     } catch (error) {
-      console.error("Error al procesar la imagen:", error)
+      console.error("Error al procesar la imagen:", error);
+      setImagePreview(null); // Restablecer a la imagen por defecto en caso de error
       toast({
         title: "Error",
         description: "No se pudo procesar la imagen. Intenta con otra imagen.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsUploadingImage(false)
+      setIsUploadingImage(false);
+      // Limpiar el input para permitir seleccionar el mismo archivo nuevamente
+      if (input) input.value = '';
     }
   }
   
@@ -319,7 +360,7 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleModalClose}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 rounded-2xl border-none shadow-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
@@ -348,14 +389,14 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
                     alt="Perfil" 
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        const fallback = document.createElement('div');
-                        fallback.className = 'w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-800';
-                        fallback.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
-                        parent.appendChild(fallback);
+                      // Usar un enfoque más seguro para manejar errores de imagen
+                      try {
+                        const target = e.target as HTMLImageElement;
+                        // En lugar de manipular el DOM directamente, simplemente ocultar la imagen
+                        // y mostrar el avatar por defecto al establecer imagePreview a null
+                        setImagePreview(null);
+                      } catch (error) {
+                        console.error('Error al manejar la imagen:', error);
                       }
                     }}
                   />
