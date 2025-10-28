@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { Loader2, Save, Upload, User } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { getRoles, getTenants, Role, Tenant, updateUserInformation, updateUserImage } from "@/lib/api"
+import { getUserData } from "@/lib/auth"
 import Image from "next/image"
 
 interface User {
@@ -50,7 +51,52 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
   const [rolesError, setRolesError] = useState<string | null>(null)
   const [tenantsError, setTenantsError] = useState<string | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isUserRH, setIsUserRH] = useState(false)
+  const [isUserAdmin, setIsUserAdmin] = useState(false)
   const { toast } = useToast()
+  
+  // Detectar si el usuario actual es RH o ADMIN
+  useEffect(() => {
+    const userData = getUserData();
+    if (userData) {
+      let roles: string[] = [];
+      
+      // Extraer roles del userData - pueden venir en authorities o roles
+      if (userData.authorities) {
+        if (typeof userData.authorities === 'string') {
+          try {
+            const authoritiesArray = JSON.parse(userData.authorities);
+            roles = authoritiesArray.map((auth: any) => auth.authority).filter(Boolean);
+          } catch (e) {
+            console.error('Error al parsear authorities:', e);
+          }
+        } else if (Array.isArray(userData.authorities)) {
+          roles = userData.authorities.map((auth: any) => auth.authority || auth).filter(Boolean);
+        }
+      } else if (userData.roles) {
+        if (Array.isArray(userData.roles)) {
+          roles = userData.roles.map((r: any) => {
+            if (typeof r === 'object' && r.nombre) return r.nombre;
+            if (typeof r === 'string') return r;
+            return '';
+          }).filter(Boolean);
+        } else if (typeof userData.roles === 'string') {
+          roles = [userData.roles];
+        }
+      }
+      
+      //console.log('Roles extraídos del usuario actual (Edit Modal - useEffect):', roles);
+      
+      // Verificar si el usuario tiene rol RH o ADMIN (comparación exacta)
+      const hasRH = roles.some(r => r === 'ROLE_RH');
+      const hasAdmin = roles.some(r => r === 'ROLE_ADMIN');
+      
+      //console.log('¿Tiene ROLE_RH? (Edit Modal)', hasRH, '¿Tiene ROLE_ADMIN?', hasAdmin);
+      
+      setIsUserRH(hasRH);
+      setIsUserAdmin(hasAdmin);
+    }
+  }, []);
   
   const [formData, setFormData] = useState({
     correo: "",
@@ -74,7 +120,7 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
       loadRoles()
       loadTenants()
     }
-  }, [isOpen])
+  }, [isOpen, isUserRH, isUserAdmin])
 
   // Cargar datos del usuario cuando cambia
   useEffect(() => {
@@ -88,7 +134,7 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
         } else {
           imageUrl = user.image;
         }
-        ////console.log('Imagen procesada correctamente para el modal de edición');
+        //////console.log('Imagen procesada correctamente para el modal de edición');
       }
       
       
@@ -123,7 +169,60 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
     
     try {
       const rolesData = await getRoles()
-      setRoles(rolesData)
+      
+      // Detectar roles del usuario actual directamente aquí
+      const userData = getUserData();
+      //console.log('userData completo (Edit Modal):', userData);
+      let userRoles: string[] = [];
+      
+      if (userData) {
+        // Los roles pueden venir en diferentes formatos
+        if (userData.authorities) {
+          // Si authorities es un string JSON, parsearlo
+          if (typeof userData.authorities === 'string') {
+            try {
+              const authoritiesArray = JSON.parse(userData.authorities);
+              userRoles = authoritiesArray.map((auth: any) => auth.authority).filter(Boolean);
+            } catch (e) {
+              console.error('Error al parsear authorities:', e);
+            }
+          } else if (Array.isArray(userData.authorities)) {
+            userRoles = userData.authorities.map((auth: any) => auth.authority || auth).filter(Boolean);
+          }
+        } else if (userData.roles) {
+          // Fallback a roles si existe
+          if (Array.isArray(userData.roles)) {
+            userRoles = userData.roles.map((r: any) => {
+              if (typeof r === 'object' && r.nombre) return r.nombre;
+              if (typeof r === 'string') return r;
+              return '';
+            }).filter(Boolean);
+          } else if (typeof userData.roles === 'string') {
+            userRoles = [userData.roles];
+          }
+        }
+      }
+      
+      //console.log('Roles extraídos (Edit Modal):', userRoles);
+      
+      const hasRH = userRoles.some(r => r === 'ROLE_RH');
+      const hasAdmin = userRoles.some(r => r === 'ROLE_ADMIN');
+      
+      //console.log('Roles del usuario actual (Edit Modal):', userRoles);
+      //console.log('¿Tiene ROLE_RH?', hasRH, '¿Tiene ROLE_ADMIN?', hasAdmin);
+      //console.log('Roles obtenidos del API (Edit Modal):', rolesData);
+      
+      // Si el usuario es RH pero no es ADMIN, solo puede editar usuarios con ROLE_RH y ROLE_CHECKTIME
+      if (hasRH && !hasAdmin) {
+        const filteredRoles = rolesData.filter(role => 
+          role.nombre === 'ROLE_RH' || role.nombre === 'ROLE_CHECKTIME'
+        )
+        //console.log('Roles filtrados para usuario RH (Edit Modal):', filteredRoles)
+        setRoles(filteredRoles)
+      } else {
+        //console.log('Usuario ADMIN o sin restricciones (Edit Modal), mostrando todos los roles')
+        setRoles(rolesData)
+      }
     } catch (error) {
       console.error("Error al cargar roles:", error)
       setRolesError("No se pudieron cargar los roles. Intenta nuevamente.")
@@ -228,7 +327,7 @@ export function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUser
         updateData.usuarioInformationRequest.pswd = formData.pswd
       }
       
-      ////console.log('Enviando solicitud para actualizar usuario:', updateData)
+      //////console.log('Enviando solicitud para actualizar usuario:', updateData)
       
       // Actualizar la información del usuario
       await updateUserInformation(updateData)

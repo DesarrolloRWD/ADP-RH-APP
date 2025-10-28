@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Users, Clock, Calendar, Search, UserCheck, LogOut, UserPlus, Loader2, FileSpreadsheet } from "lucide-react"
+import { Users, Clock, Calendar, Search, UserCheck, LogOut, UserPlus, Loader2, FileSpreadsheet, Download } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { UserCard } from "@/components/user-card"
 import { StatsCard } from "@/components/stats-card"
 import { CreateUserModal } from "@/components/create-user-modal"
 import { EditUserModal } from "@/components/edit-user-modal"
 import { BulkUploadModal } from "@/components/bulk-upload-modal"
+import { ExportAttendanceModal } from "@/components/export-attendance-modal"
 import { UserFilters, UserFilters as UserFiltersType } from "@/components/user-filters"
 import { useRouter } from "next/navigation"
 import AuthGuard from "@/components/auth-guard"
@@ -44,6 +45,7 @@ export default function DashboardPage() {
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false)
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false)
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false)
+  const [isExportAttendanceModalOpen, setIsExportAttendanceModalOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [activeFilters, setActiveFilters] = useState<UserFiltersType>({
@@ -419,6 +421,18 @@ export default function DashboardPage() {
                   Nuevo Usuario
                 </Button>
                 
+                {/* Botón para exportar asistencias - visible para ROLE_ADMIN y ROLE_RH */}
+                {currentUser && currentUser.roles && (currentUser.roles.some(role => role.nombre === 'ROLE_ADMIN') || currentUser.roles.some(role => role.nombre === 'ROLE_RH')) && (
+                  <Button
+                    size="sm"
+                    onClick={() => setIsExportAttendanceModalOpen(true)}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-sm"
+                  >
+                    <Download className="w-4 h-4 mr-1.5" />
+                    Exportar Asistencias
+                  </Button>
+                )}
+                
                 {/* Botón para carga masiva - solo visible para ROLE_ADMIN */}
                 {currentUser && currentUser.roles && currentUser.roles.some(role => role.nombre === 'ROLE_ADMIN') && (
                   <Button
@@ -506,6 +520,11 @@ export default function DashboardPage() {
         isOpen={isBulkUploadModalOpen}
         onClose={() => setIsBulkUploadModalOpen(false)}
         onUploadComplete={fetchUsers}
+      />
+      <ExportAttendanceModal
+        isOpen={isExportAttendanceModalOpen}
+        onClose={() => setIsExportAttendanceModalOpen(false)}
+        users={users}
       />
     </div>
     </AuthGuard>

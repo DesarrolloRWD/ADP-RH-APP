@@ -68,17 +68,17 @@ export function BulkUploadModal({ isOpen, onClose, onUploadComplete }: BulkUploa
       // Extraer roles del usuario
       let userRoles: string[] = []
       
-      //console.log('userData en BulkUploadModal:', userData);
+      ////console.log('userData en BulkUploadModal:', userData);
       
       // Verificar si el usuario tiene isAdmin=true en el token
       if (userData.isAdmin === true) {
-        //console.log('Usuario es admin por propiedad isAdmin');
+        ////console.log('Usuario es admin por propiedad isAdmin');
         setIsAuthorized(true);
         return;
       }
       
       if (userData.roles) {
-        //console.log('Roles encontrados:', userData.roles);
+        ////console.log('Roles encontrados:', userData.roles);
         
         // Si roles es un array de objetos con propiedad nombre
         if (Array.isArray(userData.roles) && typeof userData.roles[0] === 'object') {
@@ -103,17 +103,17 @@ export function BulkUploadModal({ isOpen, onClose, onUploadComplete }: BulkUploa
               (auth.authority && auth.authority === 'ROLE_ADMIN')
             );
             if (hasAdminAuthority) {
-              //console.log('Usuario es admin por authorities');
+              ////console.log('Usuario es admin por authorities');
               setIsAuthorized(true);
               return;
             }
           }
         } catch (e) {
-          //console.log('Error al parsear authorities:', e);
+          ////console.log('Error al parsear authorities:', e);
         }
       }
       
-      //console.log('Roles procesados:', userRoles);
+      ////console.log('Roles procesados:', userRoles);
       
       // Verificar si el usuario tiene el rol ROLE_ADMIN
       const isAdmin = userRoles.some(role => 
@@ -122,7 +122,7 @@ export function BulkUploadModal({ isOpen, onClose, onUploadComplete }: BulkUploa
         role.includes('admin')
       );
       
-      //console.log('¿Es admin?', isAdmin);
+      ////console.log('¿Es admin?', isAdmin);
       
       if (!isAdmin) {
         // Si no es administrador, cerrar el modal y mostrar mensaje
@@ -395,7 +395,7 @@ export function BulkUploadModal({ isOpen, onClose, onUploadComplete }: BulkUploa
           }
           
           // Mostrar en consola el usuario que se está procesando
-          //console.log(`Procesando usuario ${i+1}/${usersToProcess.length}: ${user.usuario}`);
+          ////console.log(`Procesando usuario ${i+1}/${usersToProcess.length}: ${user.usuario}`);
           
           // Esperar un breve tiempo entre solicitudes para no sobrecargar el servidor
           if (i > 0) {
@@ -423,7 +423,7 @@ export function BulkUploadModal({ isOpen, onClose, onUploadComplete }: BulkUploa
           
           if (response.ok) {
             result.successful++
-            //console.log(`Usuario ${user.usuario} creado exitosamente`);
+            ////console.log(`Usuario ${user.usuario} creado exitosamente`);
           } else {
             let errorMessage = 'Error desconocido';
             try {

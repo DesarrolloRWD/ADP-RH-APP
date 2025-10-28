@@ -35,23 +35,43 @@ export function CreateUserModal({ isOpen, onClose, onUserCreated }: CreateUserMo
   // Detectar si el usuario actual es RH o ADMIN
   useEffect(() => {
     const userData = getUserData();
-    if (userData && userData.roles) {
+    if (userData) {
       let roles: string[] = [];
       
-      // Extraer roles del userData
-      if (Array.isArray(userData.roles)) {
-        roles = userData.roles.map((r: any) => {
-          if (typeof r === 'object' && r.nombre) return r.nombre;
-          if (typeof r === 'string') return r;
-          return '';
-        }).filter(Boolean);
-      } else if (typeof userData.roles === 'string') {
-        roles = [userData.roles];
+      // Extraer roles del userData - pueden venir en authorities o roles
+      if (userData.authorities) {
+        if (typeof userData.authorities === 'string') {
+          try {
+            const authoritiesArray = JSON.parse(userData.authorities);
+            roles = authoritiesArray.map((auth: any) => auth.authority).filter(Boolean);
+          } catch (e) {
+            console.error('Error al parsear authorities:', e);
+          }
+        } else if (Array.isArray(userData.authorities)) {
+          roles = userData.authorities.map((auth: any) => auth.authority || auth).filter(Boolean);
+        }
+      } else if (userData.roles) {
+        if (Array.isArray(userData.roles)) {
+          roles = userData.roles.map((r: any) => {
+            if (typeof r === 'object' && r.nombre) return r.nombre;
+            if (typeof r === 'string') return r;
+            return '';
+          }).filter(Boolean);
+        } else if (typeof userData.roles === 'string') {
+          roles = [userData.roles];
+        }
       }
       
-      // Verificar si el usuario tiene rol RH o ADMIN
-      setIsUserRH(roles.some(r => r.includes('RH') || r.includes('ROLE_RH')));
-      setIsUserAdmin(roles.some(r => r.includes('ADMIN') || r.includes('ROLE_ADMIN')));
+      //console.log('Roles extraídos del usuario actual (useEffect):', roles);
+      
+      // Verificar si el usuario tiene rol RH o ADMIN (comparación exacta)
+      const hasRH = roles.some(r => r === 'ROLE_RH');
+      const hasAdmin = roles.some(r => r === 'ROLE_ADMIN');
+      
+      //console.log('¿Tiene ROLE_RH?', hasRH, '¿Tiene ROLE_ADMIN?', hasAdmin);
+      
+      setIsUserRH(hasRH);
+      setIsUserAdmin(hasAdmin);
     }
   }, []);
   
@@ -61,7 +81,7 @@ export function CreateUserModal({ isOpen, onClose, onUserCreated }: CreateUserMo
       loadRoles()
       loadTenants()
     }
-  }, [isOpen])
+  }, [isOpen, isUserRH, isUserAdmin])
   
   // Función para cargar los roles desde el API
   const loadRoles = async () => {
@@ -71,10 +91,57 @@ export function CreateUserModal({ isOpen, onClose, onUserCreated }: CreateUserMo
     try {
       const rolesData = await getRoles()
       
-      // Si el usuario es RH pero no es ADMIN, filtrar el rol ADMIN
-      if (isUserRH && !isUserAdmin) {
-        setRoles(rolesData.filter(role => role.nombre !== 'ROLE_ADMIN'))
+      // Detectar roles del usuario actual directamente aquí
+      const userData = getUserData();
+      //console.log('userData completo:', userData);
+      let userRoles: string[] = [];
+      
+      if (userData) {
+        // Los roles pueden venir en diferentes formatos
+        if (userData.authorities) {
+          // Si authorities es un string JSON, parsearlo
+          if (typeof userData.authorities === 'string') {
+            try {
+              const authoritiesArray = JSON.parse(userData.authorities);
+              userRoles = authoritiesArray.map((auth: any) => auth.authority).filter(Boolean);
+            } catch (e) {
+              console.error('Error al parsear authorities:', e);
+            }
+          } else if (Array.isArray(userData.authorities)) {
+            userRoles = userData.authorities.map((auth: any) => auth.authority || auth).filter(Boolean);
+          }
+        } else if (userData.roles) {
+          // Fallback a roles si existe
+          if (Array.isArray(userData.roles)) {
+            userRoles = userData.roles.map((r: any) => {
+              if (typeof r === 'object' && r.nombre) return r.nombre;
+              if (typeof r === 'string') return r;
+              return '';
+            }).filter(Boolean);
+          } else if (typeof userData.roles === 'string') {
+            userRoles = [userData.roles];
+          }
+        }
+      }
+      
+      //console.log('Roles extraídos:', userRoles);
+      
+      const hasRH = userRoles.some(r => r === 'ROLE_RH');
+      const hasAdmin = userRoles.some(r => r === 'ROLE_ADMIN');
+      
+      //console.log('Roles del usuario actual:', userRoles);
+      //console.log('¿Tiene ROLE_RH?', hasRH, '¿Tiene ROLE_ADMIN?', hasAdmin);
+      //console.log('Roles obtenidos del API:', rolesData);
+      
+      // Si el usuario es RH pero no es ADMIN, solo puede crear usuarios con ROLE_RH y ROLE_CHECKTIME
+      if (hasRH && !hasAdmin) {
+        const filteredRoles = rolesData.filter(role => 
+          role.nombre === 'ROLE_RH' || role.nombre === 'ROLE_CHECKTIME'
+        )
+        //console.log('Roles filtrados para usuario RH:', filteredRoles)
+        setRoles(filteredRoles)
       } else {
+        //console.log('Usuario ADMIN o sin restricciones, mostrando todos los roles')
         setRoles(rolesData)
       }
     } catch (error) {

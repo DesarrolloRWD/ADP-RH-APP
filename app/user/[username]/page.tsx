@@ -59,7 +59,7 @@ export default function UserDetailPage() {
       // Llamar al endpoint real
       const userData = await getSpecificUser(request)
       
-      ////console.log('Datos de usuario recibidos:', userData)
+      //////console.log('Datos de usuario recibidos:', userData)
       
       // Procesar la imagen base64 si existe
       let imageUrl = "/diverse-office-employee.png"
@@ -70,7 +70,7 @@ export default function UserDetailPage() {
         } else {
           imageUrl = userData.image
         }
-        ////console.log('Imagen procesada correctamente')
+        //////console.log('Imagen procesada correctamente')
       }
       
       // Transformar la respuesta al formato esperado por la interfaz User
@@ -107,7 +107,7 @@ export default function UserDetailPage() {
         eventTimestampEnd: endDate ? `${endDate}T23:59:59.999` : formatDate(today),
       }
 
-      ////console.log('Consultando historial de asistencias:', requestBody)
+      //////console.log('Consultando historial de asistencias:', requestBody)
       
       // Usar la función de la API para obtener el historial
       const data = await getAttendanceHistory(requestBody)

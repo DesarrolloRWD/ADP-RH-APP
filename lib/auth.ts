@@ -124,7 +124,7 @@ export const isAuthenticated = (): boolean => {
     // Verificar la expiración del token
     const currentTime = Date.now() / 1000;
     if (payload.exp <= currentTime) {
-      ////console.log('Token expirado, eliminando credenciales');
+      //////console.log('Token expirado, eliminando credenciales');
       removeToken(); // Limpiar token expirado
       return false;
     }
