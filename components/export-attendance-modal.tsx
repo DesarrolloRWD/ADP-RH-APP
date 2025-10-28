@@ -32,7 +32,17 @@ export function ExportAttendanceModal({ isOpen, onClose, users }: ExportAttendan
   const [isExporting, setIsExporting] = useState(false)
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
+  const [progress, setProgress] = useState(0)
+  const [currentUser, setCurrentUser] = useState("")
   const { toast } = useToast()
+
+  const handleClose = () => {
+    if (!isExporting) {
+      setProgress(0)
+      setCurrentUser("")
+      onClose()
+    }
+  }
 
   const handleExport = async () => {
     if (!startDate || !endDate) {
@@ -45,15 +55,26 @@ export function ExportAttendanceModal({ isOpen, onClose, users }: ExportAttendan
     }
 
     setIsExporting(true)
+    setProgress(0)
 
     try {
       // Crear arrays para almacenar los datos
       const allData: any[] = []
       const summaryData: any[] = []
+      const totalUsers = users.length
 
       // Obtener asistencias de cada usuario
-      for (const user of users) {
+      for (let i = 0; i < users.length; i++) {
+        const user = users[i]
+        setCurrentUser(user.usuario)
+        setProgress(Math.round(((i + 1) / totalUsers) * 100))
+
         try {
+          // Agregar un pequeño delay para evitar saturar el servidor
+          if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 100))
+          }
+
           const attendanceData = await getAttendanceHistory({
             employeeId: user.usuario,
             eventTimestampInit: `${startDate}T00:00:00.000`,
@@ -97,6 +118,16 @@ export function ExportAttendanceModal({ isOpen, onClose, users }: ExportAttendan
           })
         } catch (error) {
           console.error(`Error al obtener asistencias de ${user.usuario}:`, error)
+          // Agregar usuario con datos vacíos si hay error
+          summaryData.push({
+            'Usuario': user.usuario,
+            'Nombre Completo': `${user.nombre} ${user.apdPaterno} ${user.apdMaterno}`,
+            'Días Completos': 0,
+            'Días Incompletos': 0,
+            'Faltas': 0,
+            'Total Días': 0,
+            'Error': 'No se pudieron obtener datos'
+          })
         }
       }
 
@@ -138,7 +169,7 @@ export function ExportAttendanceModal({ isOpen, onClose, users }: ExportAttendan
         description: `El archivo ${fileName} ha sido descargado exitosamente.`,
       })
 
-      onClose()
+      handleClose()
     } catch (error) {
       console.error("Error al exportar:", error)
       toast({
@@ -148,6 +179,8 @@ export function ExportAttendanceModal({ isOpen, onClose, users }: ExportAttendan
       })
     } finally {
       setIsExporting(false)
+      setProgress(0)
+      setCurrentUser("")
     }
   }
 
@@ -215,7 +248,7 @@ export function ExportAttendanceModal({ isOpen, onClose, users }: ExportAttendan
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px] bg-white dark:bg-gray-900 rounded-2xl border-none shadow-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
@@ -282,10 +315,32 @@ export function ExportAttendanceModal({ isOpen, onClose, users }: ExportAttendan
             </div>
           </div>
 
+          {isExporting && (
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Procesando usuarios...
+                </span>
+                <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                  {progress}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-2">
+                <div 
+                  className="bg-green-500 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Usuario actual: <span className="font-medium">{currentUser}</span>
+              </p>
+            </div>
+          )}
+
           <div className="flex gap-3 pt-2">
             <Button
               variant="outline"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isExporting}
               className="flex-1 rounded-full border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
@@ -294,7 +349,7 @@ export function ExportAttendanceModal({ isOpen, onClose, users }: ExportAttendan
             <Button
               onClick={handleExport}
               disabled={isExporting || !startDate || !endDate}
-              className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-sm"
+              className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isExporting ? (
                 <>
