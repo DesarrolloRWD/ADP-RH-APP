@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, EyeOff, Users, Clock, Shield } from "lucide-react"
+import { Eye, EyeOff, Users, Clock, Shield, AlertCircle } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useRouter, useSearchParams } from "next/navigation"
 import { loginUser } from "@/lib/api"
 import { saveToken, decodeToken, saveUserData, getToken } from "@/lib/auth"
+import { validateLoginCredentials, sanitizeInput } from "@/lib/validation"
 
 // Login form component that uses searchParams
 function LoginForm() {
@@ -20,9 +21,14 @@ function LoginForm() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loginAttempts, setLoginAttempts] = useState(0)
+  const [isBlocked, setIsBlocked] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
+  
+  const MAX_LOGIN_ATTEMPTS = 5
+  const BLOCK_DURATION = 5 * 60 * 1000
   
   // Verificar si el usuario ya está autenticado
   useEffect(() => {
@@ -34,12 +40,30 @@ function LoginForm() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     setError(null)
+    
+    // Verificar si está bloqueado por intentos fallidos
+    if (isBlocked) {
+      setError('Demasiados intentos fallidos. Por favor, espera 5 minutos antes de intentar nuevamente.')
+      return
+    }
+    
+    // Validar credenciales antes de enviar
+    const validation = validateLoginCredentials(usuario, password)
+    if (!validation.isValid) {
+      setError(validation.error || 'Credenciales inválidas')
+      return
+    }
+    
+    setIsLoading(true)
 
     try {
+      // Sanitizar las entradas antes de enviar
+      const sanitizedUsuario = sanitizeInput(usuario.trim())
+      const sanitizedPassword = password.trim()
+      
       // Llamada a la API real de autenticación
-      const response = await loginUser({ usuario, pswd: password })
+      const response = await loginUser({ usuario: sanitizedUsuario, pswd: sanitizedPassword })
       
       // Obtener el token (puede venir en diferentes formatos)
       const token = response.token || response["token "];
@@ -70,11 +94,32 @@ function LoginForm() {
         }
       }
       
+      // Resetear intentos de login en caso de éxito
+      setLoginAttempts(0)
+      
       // Usar router.push para la navegación en lugar de window.location
       // Esto asegura que se use la URL base correcta automáticamente
       router.push(relativePath)
     } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión. Por favor, verifica tus credenciales.')
+      // Incrementar intentos fallidos
+      const newAttempts = loginAttempts + 1
+      setLoginAttempts(newAttempts)
+      
+      // Bloquear si se exceden los intentos máximos
+      if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
+        setIsBlocked(true)
+        setError(`Demasiados intentos fallidos. Tu cuenta ha sido bloqueada temporalmente por 5 minutos.`)
+        
+        // Desbloquear después del tiempo especificado
+        setTimeout(() => {
+          setIsBlocked(false)
+          setLoginAttempts(0)
+        }, BLOCK_DURATION)
+      } else {
+        const remainingAttempts = MAX_LOGIN_ATTEMPTS - newAttempts
+        setError(`${err.message || 'Error al iniciar sesión. Por favor, verifica tus credenciales.'} (${remainingAttempts} intentos restantes)`)
+      }
+      
       setIsLoading(false)
     }
   }
@@ -109,9 +154,17 @@ function LoginForm() {
                   type="text"
                   placeholder="nombre_usuario"
                   value={usuario}
-                  onChange={(e) => setUsuario(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    // Permitir solo caracteres alfanuméricos, guiones y guiones bajos
+                    const sanitized = value.replace(/[^a-zA-Z0-9_-]/g, '')
+                    setUsuario(sanitized)
+                  }}
+                  maxLength={20}
                   className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
                   required
+                  disabled={isBlocked}
+                  autoComplete="username"
                 />
               </div>
               <div className="space-y-2">
@@ -125,8 +178,11 @@ function LoginForm() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    maxLength={15}
                     className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 pr-10"
                     required
+                    disabled={isBlocked}
+                    autoComplete="current-password"
                   />
                   <Button
                     type="button"
@@ -144,14 +200,21 @@ function LoginForm() {
                 </div>
               </div>
               {error && (
-                <div className="p-3 rounded-md bg-red-50 text-red-600 text-sm mb-4">
-                  {error}
+                <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+              {loginAttempts > 0 && loginAttempts < MAX_LOGIN_ATTEMPTS && !error && (
+                <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 text-sm flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>Intento {loginAttempts} de {MAX_LOGIN_ATTEMPTS}</span>
                 </div>
               )}
               <Button
                 type="submit"
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2.5 rounded-xl shadow-sm"
-                disabled={isLoading}
+                disabled={isLoading || isBlocked}
               >
                 {isLoading ? (
                   <div className="flex items-center gap-2">
