@@ -120,10 +120,10 @@ export function validatePassword(password: string): ValidationResult {
     };
   }
   
-  if (password.length < 12) {
+  if (password.length < 3) {
     return {
       isValid: false,
-      error: 'La contraseña debe tener al menos 12 caracteres'
+      error: 'La contraseña debe tener al menos 3 caracteres'
     };
   }
   

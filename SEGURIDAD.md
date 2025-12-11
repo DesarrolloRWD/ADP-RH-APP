@@ -11,7 +11,7 @@ Se creó un módulo completo de validación que incluye:
 
 #### Validaciones Implementadas:
 - **Nombre de usuario**: Solo caracteres alfanuméricos, guiones y guiones bajos (3-20 caracteres)
-- **Contraseña**: Mínimo 12 caracteres, máximo 15, sin patrones de inyección SQL
+- **Contraseña**: Mínimo 3 caracteres, máximo 15, sin patrones de inyección SQL
 - **Email**: Formato válido de correo electrónico
 - **Teléfono**: Solo números, espacios, guiones y paréntesis
 - **RFC**: Formato mexicano válido
